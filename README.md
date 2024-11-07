@@ -1,8 +1,12 @@
 # Workshop: Build Your Own Chatbot
 
-**Version:** 1.0.0  
+**Version:** 1.1.1
+
 **Author:** Martin Kovacs 
 **Contact:** martin.kovacs@web.de
+
+**Author:** Johannes Baumgartl 
+**Contact:** johannes.baumgartl@web.de
 
 
 Welcome to the "Build Your Own Chatbot" workshop! This workshop will guide you through the process of creating a custom chatbot using Large Language Models (LLMs) as the core technology. By the end of this workshop, you'll have a functional chatbot that can serve as a personalized learning assistant, an interactive study tool, and a reliable support for exam preparation.

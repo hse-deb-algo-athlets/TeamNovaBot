@@ -163,3 +163,14 @@ Pre-built images are available for different Jetpack versions:
    ```
 
 ---
+
+## Final Check
+
+Execute the following command in a bash while the ollama container is running.
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2:1b",
+  "prompt": "Why is the sky blue?"
+}'
+```

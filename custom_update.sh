@@ -25,7 +25,6 @@ rm -rf .git
 cd ..
 
 cp -r _workdir_origin/* _workdir_dest
-cp -r _workdir_origin/.* _workdir_dest
 
 cd _workdir_dest
 
