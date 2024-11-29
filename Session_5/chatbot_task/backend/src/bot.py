@@ -55,7 +55,7 @@ class CustomChatBot:
 
         # Initialize the large language model (LLM) from Ollama
         # TODO: ADD HERE YOUR CODE
-        self.llm = ...
+        self.llm = ChatOllama(model="llama3.2")
 
         # Set up the retrieval-augmented generation (RAG) pipeline
         self.qa_rag_chain = self._initialize_qa_rag_chain()
@@ -70,7 +70,16 @@ class CustomChatBot:
         logger.info("Initialize chroma db client.")
 
         # TODO: ADD HERE YOUR CODE
-        ...
+        client = chromadb.HttpClient(
+         host = "localhost",
+         port = 8000,
+         ssl = False,
+         headers = None,
+         settings = Settings(allow_reset=True, anonymized_telemetry=False),
+         tenant = DEFAULT_TENANT,
+         database = DEFAULT_DATABASE,
+        )
+        return client
 
     def _initialize_vector_db(self) -> Chroma:
         """
@@ -82,12 +91,29 @@ class CustomChatBot:
         logger.info("Initialize chroma vector db.")
 
         # TODO: ADD HERE YOUR CODE
-        ...
+        collection = self.client.get_or_create_collection("Chatbot-Collection")
+        vector_db_from_client = Chroma(client=self.client,collection_name=collection.name,embedding_function=self.embedding_function)
+        return vector_db_from_client
+        
     
     def _index_data_to_vector_db(self):
 
         # TODO: ADD HERE YOUR CODE
-        ...
+        pdf_doc = "./AI_Book.pdf"
+        loader = PyPDFLoader(file_path=pdf_doc)
+        pages_chunked = RecursiveCharacterTextSplitter(chunk_size =10000,chunk_overlap =20).split_documents(documents=loader.load())
+        def clean_text(text):
+             # Remove surrogate pairs
+             text = re.sub(r'[\ud800-\udfff]', '', text)
+             # Optionally remove non-ASCII characters (depends on your use case)
+             text = re.sub(r'[^\x00-\x7F]+', '', text)
+             return text
+        def clean_and_create_document(chunk):
+            cleaned_text= clean_text(chunk.page_content)
+            return Document(page_content=cleaned_text,metadata=chunk.metadata)
+        pages_chunked_cleaned = [clean_and_create_document (chunk) for chunk in pages_chunked]
+        uuids = [str(uuid4()) for _ in range(len(pages_chunked_cleaned[:50]))]
+        self.vector_db.add_documents(documents=pages_chunked_cleaned[:50],id=uuids)
 
 
     def _initialize_qa_rag_chain(self) -> RunnableSerializable[Serializable, str]:
@@ -104,8 +130,26 @@ class CustomChatBot:
         """
 
         # TODO: ADD HERE YOUR CODE
-        ...
+        retriever=self.vector_db.as_retriever()
+        prompt_template = """
+         You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
 
+        <context>
+        {context}
+        </context>
+
+        Answer the following question:
+
+        {question}"""
+        rag_prompt = ChatPromptTemplate.from_template(prompt_template)
+        qa_rag_chain = (
+         {"context": retriever | self._format_docs, "question": RunnablePassthrough(input_type=str)}
+         | rag_prompt
+         | self.llm
+         | StrOutputParser()
+        )
+        return qa_rag_chain
+   
     def _format_docs(self, docs: List[Document]) -> str:
         """
         Helper function to format the retrieved documents into a single string.
@@ -118,7 +162,8 @@ class CustomChatBot:
         """
 
         # TODO: ADD HERE YOUR CODE
-        ...
+    
+        return "\n\n".join(doc.page_content for doc in docs)
 
     async def astream(self, question: str):
         """
