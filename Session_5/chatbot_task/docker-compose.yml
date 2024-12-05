@@ -17,11 +17,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.backend
+    # Port von Docker verbinden mit Hostsystem
     ports:
       - "5001:5001"
     container_name: backend
     environment:
-      - INDEX_DATA=0
+      - INDEX_DATA = 0
+    # Erst starten, wenn Chroma und Ollama gestartet sind
     depends_on:
       - chroma
       - ollama
@@ -32,6 +34,7 @@ services:
 
 
   chroma:
+    # Image statt Build
     image: chromadb/chroma
     volumes:
       - ./chroma:/chroma/.chroma/index
@@ -53,9 +56,9 @@ services:
     entrypoint: ["/bin/bash"]
     command: ["/run_ollama.sh"]
     environment:
-      - OLLAMA_KEEP_ALIVE=24h
-      - OLLAMA_HOST=0.0.0.0
-      - MODEL_NAME=sam4096/qwen2tools:1.5b
+      - OLLAMA_KEEP_ALIVE = 24h
+      - OLLAMA_HOST = 0.0.0.0
+      - MODEL_NAME = sam4096/qwen2tools:2
     networks:
       - app-network
 

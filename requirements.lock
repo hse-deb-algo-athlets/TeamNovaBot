@@ -80,6 +80,7 @@ colorama==0.4.6 ; (platform_system != 'Windows' and sys_platform == 'win32') or 
     # via build
     # via click
     # via ipython
+    # via pytest
     # via tqdm
     # via uvicorn
 coloredlogs==15.0.1
@@ -188,6 +189,8 @@ importlib-metadata==8.4.0
 importlib-resources==6.4.4
     # via chromadb
     # via gradio
+iniconfig==2.0.0
+    # via pytest
 ipykernel==6.29.5
     # via jupyter
     # via jupyter-console
@@ -442,6 +445,7 @@ packaging==24.1
     # via matplotlib
     # via nbconvert
     # via onnxruntime
+    # via pytest
     # via transformers
 pandas==2.2.2
     # via gradio
@@ -457,6 +461,8 @@ pillow==10.4.0
     # via sentence-transformers
 platformdirs==4.2.2
     # via jupyter-core
+pluggy==1.5.0
+    # via pytest
 posthog==3.6.0
     # via chromadb
 prometheus-client==0.20.0
@@ -510,6 +516,7 @@ pyproject-hooks==1.1.0
     # via build
 pyreadline3==3.4.1 ; sys_platform == 'win32'
     # via humanfriendly
+pytest==8.3.4
 python-dateutil==2.9.0.post0
     # via arrow
     # via jupyter-client

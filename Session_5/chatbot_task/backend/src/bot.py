@@ -21,6 +21,7 @@ logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
 
 # TODO: Implement the functions of the CustomChatBot Class. Use the knowledge and code from Session_4
+# (Implementieren Sie die Funktionen der CustomChatBot-Klasse. Nutzen Sie das Wissen und dem Code von Session_4)
 
 class CustomChatBot:
     """
@@ -38,7 +39,7 @@ class CustomChatBot:
         and the ChatOllama language model for answer generation.
         """
         # Initialize the embedding function for document retrieval
-        self.embedding_function = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2", cache_folder="/embedding_model")
+        self.embedding_function = HuggingFaceEmbeddings(model_name = "sentence-transformers/all-mpnet-base-v2", cache_folder = "/embedding_model")
         
         # Initialize the ChromaDB client
         self.client = self._initialize_chroma_client()
@@ -51,11 +52,12 @@ class CustomChatBot:
             self._index_data_to_vector_db()
 
         # Initialize the document retriever
-        self.retriever = self.vector_db.as_retriever(k=3)
+        self.retriever = self.vector_db.as_retriever(k = 3)
 
         # Initialize the large language model (LLM) from Ollama
-        # TODO: ADD HERE YOUR CODE
-        self.llm = ...
+        # TODO: ADD HERE YOUR CODE ================================================================================
+        model = "llama3.2:1"
+        self.llm = ChatOllama(model = model) #!?
 
         # Set up the retrieval-augmented generation (RAG) pipeline
         self.qa_rag_chain = self._initialize_qa_rag_chain()
@@ -69,8 +71,17 @@ class CustomChatBot:
         """
         logger.info("Initialize chroma db client.")
 
-        # TODO: ADD HERE YOUR CODE
-        ...
+        # TODO: ADD HERE YOUR CODE =================================================================================
+        client   = chromadb.HttpClient(
+            host     = "localhost",
+            port     = 8000,
+            ssl      = False,
+            headers  = None,
+            settings = Settings(allow_reset=True, anonymized_telemetry = False),
+            tenant   = DEFAULT_TENANT,
+            database = DEFAULT_DATABASE,
+        )
+        return client
 
     def _initialize_vector_db(self) -> Chroma:
         """
@@ -81,14 +92,43 @@ class CustomChatBot:
         """
         logger.info("Initialize chroma vector db.")
 
-        # TODO: ADD HERE YOUR CODE
-        ...
-    
+        # TODO: ADD HERE YOUR CODE =================================================================================
+        collection = self.client.get_or_create_collection("ChatBot_Collection")
+        vector_db = Chroma(
+            client             = self.client,
+            collection_name    = collection.name,
+            embedding_function = self.embedding_function)
+
+        return vector_db
+
     def _index_data_to_vector_db(self):
 
-        # TODO: ADD HERE YOUR CODE
-        ...
+        # TODO: ADD HERE YOUR CODE =================================================================================
+        text = "This is a test document."
+        query_vector = text
 
+        pdf_doc = "./AI_Book.pdf"
+
+        loader = PyPDFLoader(
+        file_path = pdf_doc,
+        # passwort = "my-passwort"
+        extract_images = False,)
+
+        pages_chunked = RecursiveCharacterTextSplitter().split_documents(documents = loader.load())
+
+        def clean_text(text):
+            # Remove surrogate pairs
+            text = re.sub(r'[\ud800-\udfff]', '', text)
+            # Optionally remove non-ASCII characters (depends on your use case)
+            text = re.sub(r'[^\x00-\x7F]+', '', text)
+            return text
+
+        def clean_and_create_document(chunk):
+            cleaned_text = clean_text(chunk.page_content)
+            return Document(page_content = cleaned_text, metadata = chunk.metadata)
+
+        pages_chunked_cleaned1 = [clean_and_create_document(chunk) for chunk in pages_chunked]
+        pages_chunked_cleaned = [clean_text(chunk.page_content) for chunk in pages_chunked]
 
     def _initialize_qa_rag_chain(self) -> RunnableSerializable[Serializable, str]:
         """
@@ -103,8 +143,25 @@ class CustomChatBot:
             dict: The RAG pipeline configuration.
         """
 
-        # TODO: ADD HERE YOUR CODE
-        ...
+        # TODO: ADD HERE YOUR CODE =================================================================================
+        prompt_template = """
+        You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. 
+        If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
+        <context>
+        {context}
+        </context>
+        Answer the following question: {question}"""
+
+        rag_prompt = ChatPromptTemplate.from_template(prompt_template)
+
+        retriever = self.vector_db.as_retriever()
+
+        qa_rag_chain = ({"context": retriever | self._format_docs, "question": RunnablePassthrough()}
+            | rag_prompt
+            | self.llm
+            | StrOutputParser()
+        )
+        return qa_rag_chain # ??????????????????????
 
     def _format_docs(self, docs: List[Document]) -> str:
         """
@@ -117,8 +174,8 @@ class CustomChatBot:
             str: A string containing the concatenated content of all retrieved documents.
         """
 
-        # TODO: ADD HERE YOUR CODE
-        ...
+        # TODO: ADD HERE YOUR CODE =================================================================================
+        return "\n\n".join(doc.page_content for doc in docs)
 
     async def astream(self, question: str):
         """

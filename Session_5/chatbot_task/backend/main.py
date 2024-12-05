@@ -20,22 +20,22 @@ async def lifespan(app: FastAPI):
     """
     logger.info("Creating instance of custom chatbot.")
     logger.info(f"Index data to vector store: {INDEX_DATA}")
-    app.state.chatbot = CustomChatBot(index_data=INDEX_DATA)
+    app.state.chatbot = CustomChatBot(index_data = INDEX_DATA)
     try:
-        yield
+        yield #"Inne halten"
     finally:
         logger.info("Cleaning up chatbot instance.")
         del app.state.chatbot
 
 # Create FastAPI app and configure CORS
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan = lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust to restrict domains in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins = ["*"],  # Adjust to restrict domains in production
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
 )
 
 @app.websocket("/ws")
@@ -80,4 +80,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     # Run the FastAPI app with uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=5001, reload=True, log_level="debug")
+    uvicorn.run("main:app", host = "0.0.0.0", port = 5001, reload = True, log_level = "debug")

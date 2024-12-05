@@ -529,7 +529,7 @@ pyproject-hooks==1.1.0
 pyreadline3==3.4.1 ; sys_platform == 'win32'
     # via humanfriendly
 pyright==1.1.378
-pytest==8.3.2
+pytest==8.3.4
 python-dateutil==2.9.0.post0
     # via arrow
     # via jupyter-client

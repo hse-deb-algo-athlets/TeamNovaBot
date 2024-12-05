@@ -3,7 +3,7 @@ import websockets
 import logging
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level = logging.INFO)
 logger = logging.getLogger(__name__)
 
 # WebSocket chat function (asynchronous generator)
@@ -50,12 +50,12 @@ async def chat(message: str, history=[]):
 
 # Launch Gradio Chat Interface
 gr.ChatInterface(
-    fn=chat,
-    chatbot=gr.Chatbot(height=400),  # Adjusted height for better usability
-    textbox=gr.Textbox(placeholder="Ask me questions about your script...", container=False, scale=7),
-    title="Chatbot",
-    description="Ask me questions about your lecture.",
-    theme="soft",
-    examples=["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
-    clear_btn="Clear"
-).launch(debug=True)
+    fn = chat,
+    chatbot = gr.Chatbot(height = 400),  # Adjusted height for better usability
+    textbox = gr.Textbox(placeholder = "Ask me questions about your script...", container = False, scale = 7),
+    title = "NovaChatbot",
+    description = "Ask me questions about your lecture.",
+    theme = "soft",
+    examples = ["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
+    clear_btn = "Clear"
+).launch(debug = True)

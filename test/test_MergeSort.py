@@ -1,4 +1,4 @@
-import lec_sort.mergeSort
+import marie.MergeSort
 
 def test_mergeSort():
 
@@ -8,6 +8,6 @@ def test_mergeSort():
 
     expectedarr=[1, 2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10]
     
-    lec_sort.mergeSort.mergeSort(arr, left , right)
+    marie.MergeSort.mergeSort(arr, left , right)
 
     assert arr==expectedarr , 'array not sorted as expected'

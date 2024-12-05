@@ -1,4 +1,4 @@
-import lec_sort.binarySearchIter
+import marie.BinarySearchIter as lec_sort
 
 def test_binarySearchIter ():
 
@@ -9,6 +9,6 @@ def test_binarySearchIter ():
 
     expectedindex=8
 
-    detindex= lec_sort.binarySearchIter.binarySearchIter(arr,low,high,x)
+    detindex= lec_sort.binarySearchIter(arr,low,high,x)
 
     assert expectedindex==detindex , 'Detected Index not equal to expected one'

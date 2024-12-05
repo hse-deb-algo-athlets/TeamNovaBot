@@ -1,7 +1,7 @@
-# Stage 1: Build stage
+# Stage 1: Build stage (Basis Image)
 FROM python:3.11-slim AS build-stage
 
-# Set working directory
+# Set working directory (Automatisch erstellt)
 WORKDIR /app
 
 # Install system dependencies
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 # Copy the requirements file
 COPY requirements.lock /app/
 
-# Install Python dependencies in the build stage
+# Install Python dependencies in the build stage (Während bau vom Kontainer ...)
 RUN pip install --no-cache-dir -r requirements.lock
 
 # Ensure transformers library is available
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir transformers
 # Create the embedding model directory
 RUN mkdir -p /app/src/embedding_model
 
-# Download and cache the Hugging Face model during the build
+# Download and cache the Hugging Face model during the build (Python Scribt ausführen und ins Image rein)
 RUN python -c "from langchain_huggingface import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='sentence-transformers/all-mpnet-base-v2', cache_folder='/app/src/embedding_model')"
 
 # Copy the application code to the build stage

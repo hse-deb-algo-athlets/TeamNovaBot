@@ -1,4 +1,4 @@
-import lec_sort.merge
+import marie.Merge
 
 def mergeSort(arr, left , right):
 
@@ -10,4 +10,4 @@ def mergeSort(arr, left , right):
     mergeSort(arr, left , m)
     mergeSort(arr, m + 1 , right)
 
-    lec_sort.merge.merge(arr, left, m, right)
+    marie.Merge.merge(arr, left, m, right)
