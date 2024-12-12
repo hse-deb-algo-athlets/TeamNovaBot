@@ -16,6 +16,9 @@ import re
 from uuid import uuid4
 from typing import List
 import logging
+import pandas as pd
+
+
 
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
@@ -59,6 +62,9 @@ class CustomChatBot:
 
         # Set up the retrieval-augmented generation (RAG) pipeline
         self.qa_rag_chain = self._initialize_qa_rag_chain()
+        
+
+        
 
     def _initialize_chroma_client(self) -> ClientAPI:
         """
@@ -183,3 +189,4 @@ class CustomChatBot:
         except Exception as e:
             logger.error(f"Error in stream_answer: {e}", exc_info=True)
             raise
+    
