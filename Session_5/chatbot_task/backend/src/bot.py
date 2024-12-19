@@ -16,6 +16,8 @@ import re
 from uuid import uuid4
 from typing import List
 import logging
+import pandas
+import os
 
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
@@ -56,8 +58,8 @@ class CustomChatBot:
 
         # Initialize the large language model (LLM) from Ollama
         # TODO: ADD HERE YOUR CODE ================================================================================
-        model = "llama3.2:1"
-        self.llm = ChatOllama(model = model) #!?
+        model = "llama3.2"
+        self.llm = ChatOllama(model = model, base_url = "http://ollama:11434")
 
         # Set up the retrieval-augmented generation (RAG) pipeline
         self.qa_rag_chain = self._initialize_qa_rag_chain()
@@ -73,7 +75,7 @@ class CustomChatBot:
 
         # TODO: ADD HERE YOUR CODE =================================================================================
         client   = chromadb.HttpClient(
-            host     = "localhost",
+            host     = "chroma",
             port     = 8000,
             ssl      = False,
             headers  = None,
@@ -93,13 +95,98 @@ class CustomChatBot:
         logger.info("Initialize chroma vector db.")
 
         # TODO: ADD HERE YOUR CODE =================================================================================
-        collection = self.client.get_or_create_collection("ChatBot_Collection")
-        vector_db = Chroma(
-            client             = self.client,
-            collection_name    = collection.name,
-            embedding_function = self.embedding_function)
+        collection_name = "Collection"
+        collection = self.client.get_or_create_collection(collection_name)
 
-        return vector_db
+        vector_db_from_client = Chroma(
+            client=self.client,
+            collection_name=collection_name,
+            embedding_function=self.embedding_function
+        )
+
+        return vector_db_from_client
+
+    # -----------------------------------------------------------------
+
+    # Collection Name anpassen falls ungültige Zeichen enthalten sind
+    def _validate_and_adjust_collection_name(self, name: str) -> str:
+        pdf_name = os.path.splitext(name)[0]
+        adjusted_name = re.sub(r"[^a-zA-Z0-9_-]", "", pdf_name)
+        
+        if adjusted_name and not adjusted_name[0].isalnum():
+            adjusted_name = re.sub(r"^[^a-zA-Z0-9]+", "", adjusted_name)
+        if adjusted_name and not adjusted_name[-1].isalnum():
+            adjusted_name = re.sub(r"[^a-zA-Z0-9]+$", "", adjusted_name)
+        
+        if len(adjusted_name) < 3:
+            adjusted_name = adjusted_name.ljust(3, "x")
+        elif len(adjusted_name) > 63:
+            adjusted_name = adjusted_name[:63]
+        
+        return adjusted_name
+
+    def set_vector_db_collection(self, collection: str):
+        
+        adjusted_collection_name = self._validate_and_adjust_collection_name(collection)
+        logger.info(f"Setting new collection: {adjusted_collection_name}")
+
+        self.client.get_or_create_collection(adjusted_collection_name)
+
+        vector_db_from_client = Chroma(
+            client=self.client,
+            collection_name=adjusted_collection_name,
+            embedding_function=self.embedding_function
+        )
+
+        self.vector_db = vector_db_from_client
+        
+        # RAG Chain neu initialisieren mit neuer Vector DB
+        self.qa_rag_chain = self._initialize_qa_rag_chain()
+
+    def get_current_collection(self):
+        collection = self.vector_db._collection_name
+        return collection
+
+    def delete_collection(self, collection: str):
+        try:
+            self.client.delete_collection(name=collection)
+            return f"Collection {collection} gelöscht"
+        except Exception as e:
+            logger.info("Collection existiert nicht")
+            return f"Collection {collection} konnte nicht gelöscht werden: {e}"
+
+    def get_vector_db_collections(self): 
+        collections = self.client.list_collections()
+        collection_names = [collection.name for collection in collections]
+        return collection_names
+
+    def _clean_document_text(self, chunk):
+            # Remove surrogate pairs
+            text = chunk.page_content
+            text = re.sub(r'[\ud800-\udfff]', '', text)
+            # Optionally remove non-ASCII characters (depends on your use case)
+            #text = re.sub(r'[^\x00-\x7F]+', '', text)
+            return Document(page_content=text, metadata=chunk.metadata)
+    
+    def index_file_to_vector_db(self, path: str):
+        loader = PyPDFLoader(file_path=path)
+        pages = loader.load()
+        pages_chunked = RecursiveCharacterTextSplitter(
+            #chunk_size=2000,
+            #chunk_overlap=200
+            ).split_documents(pages)
+        pages_chunked_cleaned = [self._clean_document_text(chunk) for chunk in pages_chunked]
+
+        for page in pages_chunked_cleaned:
+            logger.info(page.page_content)
+            logger.info("--------------------------------------------------")
+        
+        uuids = [str(uuid4()) for _ in range(len(pages_chunked_cleaned))]
+        self.vector_db.add_documents(documents=pages_chunked_cleaned, id=uuids)
+
+        logger.info(f"File {path} loaded")
+
+    # -----------------------------------------------------------------------
 
     def _index_data_to_vector_db(self):
 
@@ -107,14 +194,21 @@ class CustomChatBot:
         text = "This is a test document."
         query_vector = text
 
-        pdf_doc = "./AI_Book.pdf"
+        pdf_doc = "src/AI_Book.pdf"
 
         loader = PyPDFLoader(
         file_path = pdf_doc,
         # passwort = "my-passwort"
         extract_images = False,)
 
-        pages_chunked = RecursiveCharacterTextSplitter().split_documents(documents = loader.load())
+        pages = loader.load()
+        pages_chunked = RecursiveCharacterTextSplitter().split_documents(pages)
+
+        pages_chunked_cleaned = [self._clean_document_text(chunk) for chunk in pages_chunked]
+        uuids = [str(uuid4()) for _ in range(len(pages_chunked_cleaned[:50]))]
+        self.vector_db.add_documents(documents=pages_chunked_cleaned[:50], id = uuids)
+        
+        logger.info("AI Book loaded")
 
         def clean_text(text):
             # Remove surrogate pairs
@@ -154,14 +248,14 @@ class CustomChatBot:
 
         rag_prompt = ChatPromptTemplate.from_template(prompt_template)
 
-        retriever = self.vector_db.as_retriever()
+        retriever = self.vector_db.as_retriever(search_kwargs = {"k" : 3})
 
         qa_rag_chain = ({"context": retriever | self._format_docs, "question": RunnablePassthrough()}
             | rag_prompt
             | self.llm
             | StrOutputParser()
         )
-        return qa_rag_chain # ??????????????????????
+        return qa_rag_chain 
 
     def _format_docs(self, docs: List[Document]) -> str:
         """
@@ -175,6 +269,8 @@ class CustomChatBot:
         """
 
         # TODO: ADD HERE YOUR CODE =================================================================================
+        for i, doc in enumerate(docs):
+            logger.info(f"Dokument {i+1}: {doc.page_content}, Metadaten: {doc.metadata}")
         return "\n\n".join(doc.page_content for doc in docs)
 
     async def astream(self, question: str):
@@ -195,3 +291,6 @@ class CustomChatBot:
         except Exception as e:
             logger.error(f"Error in stream_answer: {e}", exc_info=True)
             raise
+        finally:
+            logger.info("Stream complete")
+

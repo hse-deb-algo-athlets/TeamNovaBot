@@ -7,7 +7,8 @@ import traceback
 import os
 from src.bot import CustomChatBot
 
-INDEX_DATA = bool(int(os.environ["INDEX_DATA"]))
+#INDEX_DATA = bool(int(os.environ["INDEX_DATA"]))
+INDEX_DATA = True
 
 # Set up logger
 logger = logging.getLogger("uvicorn")
@@ -80,4 +81,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     # Run the FastAPI app with uvicorn
-    uvicorn.run("main:app", host = "0.0.0.0", port = 5001, reload = True, log_level = "debug")
+    uvicorn.run("main:app", host = "backend", port = 5001, reload = True, log_level = "debug")

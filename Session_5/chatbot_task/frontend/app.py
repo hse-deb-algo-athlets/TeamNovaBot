@@ -56,6 +56,8 @@ gr.ChatInterface(
     title = "NovaChatbot",
     description = "Ask me questions about your lecture.",
     theme = "soft",
+    # Beispiel Fragen:
     examples = ["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
+    # Button Fenster bereinigen:
     clear_btn = "Clear"
 ).launch(debug = True)
