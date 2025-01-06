@@ -126,44 +126,76 @@ async def chat(message: str, history = []):
         message = f"Error: {e}"
         yield message
 
-# Frage gestellt bekommen
+# Frage gestellt bekommen (Simon)
 
+# Platzhalter
+stats = pd.DataFrame(
+  {
+    "Bewertung": ["Korrekt", "Falsch"],
+    "Anzahl": [80, 47]
+  }
+)
 
 # ---------------------------------------------------------------------------------------------------------------------
 
 with gr.Blocks() as demo:
     collections = get_collections()
-    gr.Markdown("### Nova Chatbot")
-    
-    with gr.Tab("Chatbot"):
-        chatbot = gr.Chatbot(height = 400)
-        msg = gr.Textbox(placeholder = "Ask me questions about your script...")
-        clear = gr.ClearButton([msg, chatbot])
+    with gr.Row(equal_height = True):      
+        with gr.Column(scale = 1):
+            head_line = gr.Markdown("# Nova ChatBot")
+            auswahl_PDF = gr.Dropdown(label = "PDF Auswahl",
+                                    info = "PDF für Kontext auswählen",
+                                    choices = collections,
+                                    value = collections[0] if collections else None,
+                                    interactive = True,
+                                    min_width = 50
+                                    )
+        with gr.Column(scale = 1):
+            chatbot_picture = gr.Image(value = "/workspaces/TeamNovaBot/Session_5/chatbot_task/frontend/Bilder/HeadPic.jpeg", 
+                                       width = 150,
+                                       #container = False,
+                                       show_fullscreen_button = False, 
+                                       show_download_button = False)
 
-        def respond(message, chat_history):
-            bot_message = chat(message, chat_history)
-            chat_history.append((message, bot_message))
-            return "", chat_history
+    with gr.Row():
+        with gr.Column(scale = 6):
+        # ChatBot fenster
+            with gr.Tab("Chatbot"): 
+                gr.ChatInterface(
+                    fn = chat,
+                    chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
+                    textbox = gr.Textbox(placeholder = "Frag mich etwas über dein Script...", container = False, scale = 3),
+                    theme = "soft",
+                    examples=["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
+                )
 
-        msg.submit(respond, [msg, chatbot], [msg, chatbot])
+        # Liste der hochgeladenen PDF Dateien
+            with gr.Tab("PDF-Bibliothek"): 
+                upload_button = gr.UploadButton("Datei hinzufügen", file_types = [".pdf"], file_count = "single")
+                output = gr.List(label="Die hochgeladenen Dateien sind: ", value = upload_pdf) #?
+                upload_button.upload(upload_pdf, inputs = upload_button, outputs = output)
 
-        with gr.Column():
-            dropdown = gr.Dropdown(label = "Collection",
-                                info = "Collection für Kontext auswählen",
-                                choices = collections,
-                                value = collections[0] if collections else None,
-                                interactive = True
-                                )
+        # Karteikartenmodus
+            with gr.Tab("Karteikarten-Lernen"): 
+                chat_fenster = gr.Chatbot(height = 300)
+                text_fenster = gr.Textbox()
+                with gr.Row():
+                    butto_generait = gr.Button("Fragen generieren")
+                    button_new = gr.Button("Ein neue Frage stellen")
+
+        # Statistikmodus
+            with gr.Tab("Statistik"): 
+                with gr.Row():
+                    st = gr.BarPlot(stats, x = "Bewertung", y = "Anzahl", color = "Bewertung",
+                    color_map={"Korrekt": "#75ff33", "Falsch": "#FF5733"})
+                gr.Button("Statistik laden")
+
+        # Verwaltungsmodus
+            with gr.Tab("Verwaltung"):  
+                gr.Button("Liste löschen")  
             
-            upload_button = gr.UploadButton("Datei hinzufügen", file_types = [".pdf"], file_count = "single")
-        
-        upload_button.upload(upload_pdf, inputs = upload_button, outputs = dropdown)
-        dropdown.change(set_collection, inputs = dropdown)
-
-    # Die Tabs "Statistik" und "Verwaltung" bleiben unverändert
-
-    demo.load(update_dropdown, outputs = dropdown)
-    demo.launch(debug = True)
+            demo.load(update_dropdown, outputs = auswahl_PDF)
+demo.launch(debug = True)
 
 # ---------------------------------------------------------------------------------------------------------------------
 
