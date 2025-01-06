@@ -36,7 +36,7 @@ def upload_pdf(path: str):
         gr.Warning(response.json()['message'])
 
 # Das Auswahlfenster neu laden:
-def update_dropdown(selected_collection=None):
+def update_dropdown(selected_collection = None):
     """
     Aktualisiere das Dropdown-Menü 
     mit neuen Collections und optional 
@@ -51,6 +51,7 @@ def update_dropdown(selected_collection=None):
     selected_value = selected_collection if selected_collection else (new_choices[0] if new_choices else None)
     return gr.Dropdown(choices=new_choices, value=selected_value)
 
+# Datenabfrage aus ChromaDB
 def get_collections():
     """
     Abfragen der Collections 
@@ -67,6 +68,7 @@ def get_collections():
     except Exception as e:
         gr.Warning(f"Fehler beim Collections laden: {e}")
 
+# Aktuellen Datensatz festlegen
 def set_collection(selected_collection: str):
     """
     Setzen der Collection, 
@@ -108,7 +110,7 @@ async def websocket_chat(message: str):
         yield f"Error: {str(e)}"
 
 # Chat function to update the chatbot message history
-async def chat(message: str, history=[]):
+async def chat(message: str, history = []):
     if not message.strip():
         yield "Please enter a valid question."
         return
@@ -124,11 +126,14 @@ async def chat(message: str, history=[]):
         message = f"Error: {e}"
         yield message
 
+# Frage gestellt bekommen
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 
 with gr.Blocks() as demo:
     collections = get_collections()
-    gr.Markdown("### NovaChatbot")
+    gr.Markdown("### Nova Chatbot")
     
     with gr.Tab("Chatbot"):
         chatbot = gr.Chatbot(height = 400)

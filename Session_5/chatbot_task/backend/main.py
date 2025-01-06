@@ -65,7 +65,30 @@ async def upload_PDF(file: UploadFile = File(...)):
     
     except Exception as e:
          return JSONResponse(status_code=500, content={"message": "Fehler beim Hochladen", "error": str(e)})
-# __________________________________________________________________________________________
+# _________________________________________________________________________________________
+
+# Dateien hochladen
+@app.post("/pdf_upload")
+async def pdf_upload(file: UploadFile = File(...)):
+    dir_upload = "pdfs"
+
+    try:
+        os.makedirs(dir_upload, exist_ok = True)
+
+        filename = file.filename or "default.pdf"
+        file_path = os.path.join(dir_upload, filename)
+        with open(file_path, "wb") as p:
+            p.write(await file.read())
+        
+        app.state.chatbot.set_vector_db_collection(filename)
+
+        if True:
+            logger.debug("Lade Datei in Vector DB...")
+            app.state.chatbot.index_file_to_vector_db(file_path)
+        return JSONResponse(content={"message": f"Datei '{filename}' erfolgreich hochgeladen!"})
+    
+    except Exception as e:
+         return JSONResponse(status_code=500, content={"message": "Fehler beim Hochladen", "error": str(e)})
 
 @app.get("/get_collections")
 def get_collections():
