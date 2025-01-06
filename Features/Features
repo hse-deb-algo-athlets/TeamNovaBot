@@ -1,0 +1,9 @@
+import pandas as pd
+
+questions = pd.DataFrame(columns=['question','theme','beantwortet','richtig'])
+def add_Questions(self,question:str,theme:str):
+        temp = pd.DataFrame([question,theme,0,0],['question','theme','beantwortet','richtig'])
+        self.questions = pd.merge(self.questions,temp)
+def get_stats(self):
+        themes =self.questions.groupby('theme')
+        for name,values in themes:
