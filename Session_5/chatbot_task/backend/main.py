@@ -7,6 +7,7 @@ import logging
 from contextlib import asynccontextmanager
 import traceback
 import os
+import pandas as pd
 from src.bot import CustomChatBot
 
 #INDEX_DATA = bool(int(os.environ["INDEX_DATA"]))
@@ -15,6 +16,8 @@ INDEX_DATA = True
 # Set up logger
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
+statistic = pd.DataFrame()
+questions = pd.DataFrame()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,7 +65,8 @@ async def upload_PDF(file: UploadFile = File(...)):
             logger.debug("Lade Datei in Vector DB...")
             app.state.chatbot.index_file_to_vector_db(file_path)
         return JSONResponse(content={"message": f"Datei '{filename}' erfolgreich hochgeladen!"})
-    
+        
+        
     except Exception as e:
          return JSONResponse(status_code=500, content={"message": "Fehler beim Hochladen", "error": str(e)})
 # __________________________________________________________________________________________
@@ -136,3 +140,13 @@ async def websocket_endpoint(websocket: WebSocket):
 if __name__ == "__main__":
     # Run the FastAPI app with uvicorn
     uvicorn.run("main:app", host = "backend", port = 5001, reload = True, log_level = "debug")
+
+@app.get("/Fragen")
+def getFrage():
+    app.state.chatbot.fragen_erstellen()
+    return app.state.chatbot.Fragen
+
+@app.get("/Antwort")
+
+@app.get("/nächsteFrage")
+def nextQuestion():

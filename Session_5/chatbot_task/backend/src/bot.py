@@ -16,7 +16,7 @@ import re
 from uuid import uuid4
 from typing import List
 import logging
-import pandas
+import pandas as pd
 import os
 
 logger = logging.getLogger("uvicorn")
@@ -63,6 +63,8 @@ class CustomChatBot:
 
         # Set up the retrieval-augmented generation (RAG) pipeline
         self.qa_rag_chain = self._initialize_qa_rag_chain()
+        self.statistic = pd.DataFrame()
+        self.Fragen = pd.DataFrame()
 
     def _initialize_chroma_client(self) -> ClientAPI:
         """
@@ -239,8 +241,7 @@ class CustomChatBot:
 
         # TODO: ADD HERE YOUR CODE =================================================================================
         prompt_template = """
-        You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. 
-        If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
+        Du bist ein Assistent um Fragen zu beantworten benutze die Information aus dem Kontext um die Frage zu beantworten
         <context>
         {context}
         </context>
@@ -293,4 +294,58 @@ class CustomChatBot:
             raise
         finally:
             logger.info("Stream complete")
+   
+    def question_generation_chain(self,chunk):
+        propmt_template="""
+        Du bist ein Assistent um Fragen zu einem bestimmten Thema mithilfe eines gegebenen Textes zu erstellen. Gebe zusätzlich ein Allgemeines Thema an zu dem es gehört.
+        Die Frage soll das vorgegebene Format haben. Benutzte keine weitere Formatierung.
+        
+        Format:
+        Frage: [Deine Frage]
+        Thema: [das entsprechende Thema]
 
+        Hier ist der gegebene Text:
+        {context}
+        """
+        prompt = ChatPromptTemplate.from_template(propmt_template)
+
+        question_chain = (
+            {"context" : RunnablePassthrough()}
+            | prompt
+            | self.llm
+            | StrOutputParser()
+        )
+        return question_chain.invoke({"context":chunk})
+   
+    def antwort_überprüfen(self,frage,antwort,chunk):
+        propmt_template="""
+        Du bist ein Assistent um Antworten auf Fragen zu überprüfen und anhand des context zu bewerten.
+        Nimm die gegebene Frage und überprüfe ob die Antwort dazu passt.
+        Antworte nur mit richtig oder falsch
+        Frage: {question}s
+        Antwort: {awnser}
+        Kontext: {Kontext}
+        """
+        prompt = ChatPromptTemplate.from_template(propmt_template)
+
+        awnser_chain = (
+            {"question" : RunnablePassthrough(),"awnser":RunnablePassthrough(),"Kontext":RunnablePassthrough()}
+            | prompt
+            | self.llm
+            | StrOutputParser()
+        )
+        return awnser_chain.invoke({"question":frage,"awnser":antwort,"Kontext":chunk})
+    
+    def fragen_erstellen(self):
+        
+
+        collection =self.client.get_collection(self.get_current_collection())
+        docs = collection.get()["documents"] or[]
+        i = 0
+        for doc in docs:
+            question = self.question_generation_chain(doc)
+            question.split('Thema:')
+            self.Fragen[i] = {'Frage':question[0],'Thema':question[1]}
+       
+        for thema in self.Fragen['Thema'].unique():
+            self.statistic['Thema'] = thema
