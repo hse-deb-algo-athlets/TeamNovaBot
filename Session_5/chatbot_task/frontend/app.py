@@ -49,7 +49,7 @@ def update_dropdown(selected_collection = None):
         
     new_choices = get_collections()
     selected_value = selected_collection if selected_collection else (new_choices[0] if new_choices else None)
-    return gr.Dropdown(choices=new_choices, value=selected_value)
+    return gr.Dropdown(choices=new_choices, value = selected_value)
 
 # Datenabfrage aus ChromaDB
 def get_collections():
@@ -162,8 +162,8 @@ with gr.Blocks() as demo:
 
     # Die Tabs "Statistik" und "Verwaltung" bleiben unverändert
 
-demo.load(update_dropdown, outputs = dropdown)
-demo.launch(debug = True)
+    demo.load(update_dropdown, outputs = dropdown)
+    demo.launch(debug = True)
 
 # ---------------------------------------------------------------------------------------------------------------------
 
