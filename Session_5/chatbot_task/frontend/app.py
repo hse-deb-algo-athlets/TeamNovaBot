@@ -30,26 +30,11 @@ def upload_pdf(path: str):
     logger.info(response.text)
 
     if response.status_code == 200:
+        bib = get_collections()
         gr.Info(response.json()['message'])
-        return  update_dropdown()
+        return  update_dropdown(), gr.List(label = "Die hochgeladenen Dateien sind: ", value = bib)
     else:
         gr.Warning(response.json()['message'])
-
-# Das Auswahlfenster neu laden:
-def update_dropdown(selected_collection = None):
-    """
-    Aktualisiere das Dropdown-Menü 
-    mit neuen Collections und optional 
-    einer vorausgewählten Collection.
-    """
-    if selected_collection == None:
-        curr_collection = requests.get(base_url + "get_current_collection")
-        name = curr_collection.json()['collection_name']
-        selected_collection = name
-        
-    new_choices = get_collections()
-    selected_value = selected_collection if selected_collection else (new_choices[0] if new_choices else None)
-    return gr.Dropdown(choices=new_choices, value = selected_value)
 
 # Datenabfrage aus ChromaDB
 def get_collections():
@@ -65,6 +50,7 @@ def get_collections():
         collections = response.json()
         logger.debug(collections)
         return collections
+    
     except Exception as e:
         gr.Warning(f"Fehler beim Collections laden: {e}")
 
@@ -126,8 +112,6 @@ async def chat(message: str, history = []):
         message = f"Error: {e}"
         yield message
 
-# Frage gestellt bekommen (Simon)
-
 # Platzhalter
 stats = pd.DataFrame(
   {
@@ -136,65 +120,158 @@ stats = pd.DataFrame(
   }
 )
 
+# Funktion Fragen generieren
+def fragen_generieren():
+    ...
+    return questions()
+
+# Antworten überprüfen
+def check_antworten():
+    ...
+    return ...
+
+# Funktion Generierte Fragen Speichern für Abfrage
+def questions():
+    ...
+    return ...
+
+# Funktion Löschen der Collection
+def delete_collection(selected_collection:str):
+    try:
+        url = base_url + "delete_collection"
+        
+        data = {"collection_name": selected_collection}
+
+        response = requests.put(url, json = data)
+        response.raise_for_status()
+        logger.info(f"Collection {selected_collection} gelöscht")
+        gr.Info(f"Collection {selected_collection} gelöscht")
+        return True
+    except:
+        gr.Warning(f"Fehler beim Löschen von {selected_collection}")
+        return False
+
+# Funktion Update Liste
+def update_dropdown(selected_collection = None):
+    """
+    Aktualisiere das Dropdown-Menü mit neuen Collections und optional einer vorausgewählten Collection.
+    """
+    if selected_collection == None:
+        curr_collection = requests.get(base_url + "get_current_collection")
+        name = curr_collection.json()['collection_name']
+        selected_collection = name
+        
+    new_choices = get_collections()
+    selected_value = selected_collection if selected_collection else (new_choices[0] if new_choices else None)
+    return gr.Dropdown(choices=new_choices, value=selected_value)
+
+# Funktion Zusammenfassung generieren
+def zusammenfassung():
+    ...
+    return ...
+
 # ---------------------------------------------------------------------------------------------------------------------
 
 with gr.Blocks() as demo:
     collections = get_collections()
-    with gr.Row(equal_height = True):      
-        with gr.Column(scale = 1):
+
+    # State um Collections zu speichern, bei Änderung wird Verwaltung neu gerendert
+    collections_state = gr.State(collections) 
+    logger.info(f"Collections: {collections}, collection state {collections_state}")
+
+
+    with gr.Row():      
+        with gr.Column(scale = 4):
             head_line = gr.Markdown("# Nova ChatBot")
             auswahl_PDF = gr.Dropdown(label = "PDF Auswahl",
-                                    info = "PDF für Kontext auswählen",
-                                    choices = collections,
-                                    value = collections[0] if collections else None,
-                                    interactive = True,
-                                    min_width = 50
-                                    )
+                                      info = "PDF für Kontext auswählen",
+                                      choices = collections,
+                                      value = collections[0] if collections else None,
+                                      interactive = True,
+                                      min_width = 50
+                                     )
         with gr.Column(scale = 1):
-            chatbot_picture = gr.Image(value = "/workspaces/TeamNovaBot/Session_5/chatbot_task/frontend/Bilder/HeadPic.jpeg", 
+            chatbot_picture = gr.Image(value = "Bilder/HeadPic.jpeg", 
                                        width = 150,
-                                       #container = False,
+                                       container = False,
                                        show_fullscreen_button = False, 
-                                       show_download_button = False)
+                                       show_download_button = False
+                                      )
 
     with gr.Row():
         with gr.Column(scale = 6):
         # ChatBot fenster
             with gr.Tab("Chatbot"): 
                 gr.ChatInterface(
-                    fn = chat,
-                    chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
-                    textbox = gr.Textbox(placeholder = "Frag mich etwas über dein Script...", container = False, scale = 3),
-                    theme = "soft",
-                    examples=["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
-                )
+                                    fn = chat,
+                                    chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
+                                    #textbox = gr.Textbox(placeholder = "Frag mich etwas über dein Script...", container = False, scale = 3),
+                                    theme = "soft",
+                                    examples=["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
+                                )
 
         # Liste der hochgeladenen PDF Dateien
             with gr.Tab("PDF-Bibliothek"): 
                 upload_button = gr.UploadButton("Datei hinzufügen", file_types = [".pdf"], file_count = "single")
-                output = gr.List(label="Die hochgeladenen Dateien sind: ", value = upload_pdf) #?
-                upload_button.upload(upload_pdf, inputs = upload_button, outputs = output)
+                output = gr.List(label = "Die hochgeladenen Dateien sind: ", value = collections)
+                upload_button.upload(upload_pdf, inputs = upload_button, outputs = [auswahl_PDF, output])
 
         # Karteikartenmodus
             with gr.Tab("Karteikarten-Lernen"): 
+                # Chatfenster für Verlauf
                 chat_fenster = gr.Chatbot(height = 300)
-                text_fenster = gr.Textbox()
+                # Textfeld für Antwort
+                text_fenster = gr.Textbox(label = "Antwort: ")
+                
                 with gr.Row():
                     butto_generait = gr.Button("Fragen generieren")
                     button_new = gr.Button("Ein neue Frage stellen")
+                # Button klicken
+                    butto_generait.click(fragen_generieren, outputs = [chat_fenster])
+                    button_new.click(questions, outputs = [chat_fenster])
 
         # Statistikmodus
             with gr.Tab("Statistik"): 
                 with gr.Row():
-                    st = gr.BarPlot(stats, x = "Bewertung", y = "Anzahl", color = "Bewertung",
-                    color_map={"Korrekt": "#75ff33", "Falsch": "#FF5733"})
-                gr.Button("Statistik laden")
+                    st = gr.BarPlot(
+                                        stats, 
+                                        x = "Bewertung", 
+                                        y = "Anzahl", 
+                                        color = "Bewertung",
+                                        color_map={"Korrekt": "#75ff33", "Falsch": "#FF5733"}
+                                    )
+                gr.Button("Statistik laden").click()
 
         # Verwaltungsmodus
-            with gr.Tab("Verwaltung"):  
-                gr.Button("Liste löschen")  
-            
+            with gr.Tab("Verwaltung"):
+                @gr.render(inputs = collections_state)
+                def render_collections(collections):
+                    # Für jede Collection wird ein Button erstellt.
+                    for collection in collections:
+                        with gr.Row():
+                            gr.Textbox(f"Collection {collection}", show_label = False, container = False)
+                            delete_btn = gr.Button("Löschen", scale = 0, variant = "stop")
+
+                        def delete(collection = collection):       
+                            # Überprüfung ob Collection ohne Fehler gelöscht wurde, nur dann werden diese aus der Ansicht entfernen
+                            if delete_collection(str(collection)): 
+                                # Collection aus State löschen damit neu gerendert wird
+                                collections.remove(collection) 
+
+                            # Dropdown aktualiseren
+                            dropdown = update_dropdown()    
+                            return collections, dropdown
+                         
+                        delete_btn.click(delete, None, [collections_state, auswahl_PDF])
+
+                with gr.Row():
+                    button_delete = gr.Button("Liste löschen")
+  
+                    # Button Klick
+                    button_delete.click(delete_collection)
+                
             demo.load(update_dropdown, outputs = auswahl_PDF)
+            demo.load(get_collections, outputs = collections_state)
 demo.launch(debug = True)
 
 # ---------------------------------------------------------------------------------------------------------------------

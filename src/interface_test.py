@@ -54,16 +54,39 @@ stats = pd.DataFrame(
   }
 )
 
+def fragen_generieren():
+    frage = "Wie geht es dir?"
+    return frage
+
+def delete_collection(selected_collection:str):
+    try:
+        #url = base_url + "delete_collection"
+        
+        data = {"collection_name": selected_collection}
+
+        #response = requests.put(url, json=data)
+        #response.raise_for_status()
+        #logger.info(f"Collection {selected_collection} gelöscht")
+        gr.Info(f"Collection {selected_collection} gelöscht")
+        return True
+    except:
+        gr.Warning(f"Fehler beim Löschen von {selected_collection}")
+        return False
 
 
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 with gr.Blocks() as demo:
-    #collections = get_collections()
+    collections = get_collections()
+
+    collections_state = gr.State(collections) #State um Collections zu speichern, bei Änderung wird Verwaltung neu gerendert
+    #logger.info(f"Collections: {collections}, collection state {collections_state}")
+
     with gr.Row(equal_height = True):
         with gr.Column(scale = 4):
             head_line = gr.Markdown("# Nova ChatBot")
             auswahl_PDF = gr.Dropdown(label = "PDF Auswahl",
                                     info = "PDF für Kontext auswählen",
-                                    choices = ["Hallo", "Bye"],
+                                    choices = get_collections(),
                                     #value = collections[0] if collections else None,
                                     interactive = True,
                                     min_width = 1000
@@ -71,7 +94,7 @@ with gr.Blocks() as demo:
         with gr.Column(scale = 1):
             chatbot_picture = gr.Image(value = "/workspaces/TeamNovaBot/Session_5/chatbot_task/frontend/Bilder/HeadPic.jpeg", 
                                        width = 150,
-                                       #container = False,
+                                       container = False,
                                        show_fullscreen_button = False, 
                                        show_download_button = False)
 
@@ -95,15 +118,16 @@ with gr.Blocks() as demo:
 
         # Karteikartenmodus
             with gr.Tab("Karteikarten-Lernen"): 
-                chat_fenster = gr.Chatbot(height = 300)
-                text_fenster = gr.Textbox()
+                chat_fenster = gr.Chatbot(height = 300) 	                   # Chatfenster für Verlauf
+                text_fenster = gr.Textbox(label = "Antwort: ")                 # Textfeld für Antwort
+                
                 with gr.Row():
                     butto_generait = gr.Button("Fragen generieren", )
                     button_new = gr.Button("Ein neue Frage stellen")
                     
                     # Button klicken
-                    butto_generait.click()
-                    button_new.click()
+                    butto_generait.click(fragen_generieren, outputs = [chat_fenster])
+                    button_new.click(fragen_generieren, outputs = [chat_fenster])
 
         # Statistikmodus
             with gr.Tab("Statistik"): 
@@ -115,14 +139,31 @@ with gr.Blocks() as demo:
 
         # Verwaltungsmodus
             with gr.Tab("Verwaltung"):
+                @gr.render(inputs = collections_state)
+                def render_collections(collections):
+                    for collection in collections: # Für jede Collection wird ein Button erstellt
+                
+                        with gr.Row():
+                            gr.Textbox(f"Collection {collection}", show_label = False, container = False)
+                            delete_btn = gr.Button("Löschen", scale = 0, variant = "stop")
+
+                        def delete(collection = collection):       
+                            # Überprüfung ob Collection ohne Fehler gelöscht wurde, nur dann diese aus der Ansicht entfernen
+                            if delete_collection(str(collection)): 
+                                collections.remove(collection) # Collection aus State löschen damit neu gerendert wird
+
+                            dropdown = update_dropdown()    # Dropdown aktualiseren
+                            return collections, dropdown
+                         
+                        delete_btn.click(delete, None, [collections_state, auswahl_PDF])
+
                 with gr.Row():
                     button_delete = gr.Button("Liste löschen")
-                    button_del_one = gr.Button("Einfach Löschen")
-                    output = gr.List(label = "Hochgeladenen Dateien: ", value = uploaded_files)
-
+  
                     # Button Klick
-                    button_delete.click()
-                    button_del_one.click()
+                    button_delete.click(delete_collection)
+
             
             #demo.load(update_dropdown, outputs = auswahl_PDF)
+            #demo.load(get_collections, outputs = collections_state)
     demo.launch(debug = True)

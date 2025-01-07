@@ -44,27 +44,6 @@ app.add_middleware(
 class CollectionRequest(BaseModel):
     collection_name: str
 
-# Dateien Hochladen: _________________________________________________________________________
-@app.post("/upload_PDF")
-async def upload_PDF(file: UploadFile = File(...)):
-    upload_dir = "pdfs"
-    try:
-        os.makedirs(upload_dir, exist_ok = True)
-
-        filename = file.filename or "default.pdf"
-        file_path = os.path.join(upload_dir, filename)
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
-        
-        app.state.chatbot.set_vector_db_collection(filename)
-
-        if True:
-            logger.debug("Lade Datei in Vector DB...")
-            app.state.chatbot.index_file_to_vector_db(file_path)
-        return JSONResponse(content={"message": f"Datei '{filename}' erfolgreich hochgeladen!"})
-    
-    except Exception as e:
-         return JSONResponse(status_code=500, content={"message": "Fehler beim Hochladen", "error": str(e)})
 # _________________________________________________________________________________________
 
 # Dateien hochladen
@@ -90,17 +69,16 @@ async def pdf_upload(file: UploadFile = File(...)):
     except Exception as e:
          return JSONResponse(status_code=500, content={"message": "Fehler beim Hochladen", "error": str(e)})
 
+# PDF Bibliothek
 @app.get("/get_collections")
 def get_collections():
     collections = app.state.chatbot.get_vector_db_collections()
     return collections
 
-
 @app.get("/get_current_collection")
 def get_current_collection():
     collection = app.state.chatbot.get_current_collection()
     return CollectionRequest(collection_name= collection)
-
 
 @app.post("/set_collection")
 def set_collection(request: CollectionRequest):
@@ -109,10 +87,16 @@ def set_collection(request: CollectionRequest):
     app.state.chatbot.set_vector_db_collection(collection_name)
     return {"message": f"Collection {collection_name} ausgewählt"}
 
+# Bibliothek Löschen
 @app.put("/delete_collection")
 def delete_collection(collection_name: str):
     result = app.state.chatbot.delete_collection(collection_name)
     return result
+
+# Fragen generieren
+@app.post("/generate_questions")
+def generate_questions():
+    return app.state.chatbot.generate_questions()
 
 # _________________________________________________________________________________________
 
@@ -137,6 +121,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     logger.info(f"Sending chunk: {chain_result}")
                     # Send the response chunk back to the client
                     await websocket.send_text(chain_result)
+
+                logger.info("Ende des Streams")
+                await websocket.close()
+                break
 
             except WebSocketDisconnect:
                 # Graceful handling of WebSocket disconnection
