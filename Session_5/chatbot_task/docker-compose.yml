@@ -22,14 +22,9 @@ services:
       - "5001:5001"
     container_name: backend
     environment:
-<<<<<<< HEAD
       - INDEX_DATA = 0
       - MODEL_NAME = llama3.2
     # Erst starten, wenn Chroma und Ollama gestartet sind
-=======
-      - INDEX_DATA=0
-      - MODEL_NAME=llama3.2
->>>>>>> origin/Alternative-Lösungen
     depends_on:
       - chroma
       - ollama
@@ -40,10 +35,7 @@ services:
 
 
   chroma:
-<<<<<<< HEAD
     # Image statt Build
-=======
->>>>>>> origin/Alternative-Lösungen
     image: chromadb/chroma:0.5.13
     volumes:
       - ./chroma:/chroma/.chroma/index
@@ -65,15 +57,9 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command: ["( /bin/ollama serve & sleep 5; /bin/ollama run llama3.2 )"]
     environment:
-<<<<<<< HEAD
       - OLLAMA_KEEP_ALIVE = 24h
       - OLLAMA_HOST = 0.0.0.0
       - MODEL_NAME = llama3.2
-=======
-      - OLLAMA_KEEP_ALIVE=24h
-      - OLLAMA_HOST=0.0.0.0
-      - MODEL_NAME=llama3.2
->>>>>>> origin/Alternative-Lösungen
     networks:
       - app-network
 
