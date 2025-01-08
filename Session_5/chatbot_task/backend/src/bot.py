@@ -133,12 +133,11 @@ class CustomChatBot:
         adjusted_name = re.sub(r"[^a-zA-Z0-9_-]", "", pdf_name)
         
         if adjusted_name and not adjusted_name[0].isalnum():
-            adjusted_name = re.sub(r"^[^a-zA-Z0-9]+", "", adjusted_name)
-        if adjusted_name and not adjusted_name[-1].isalnum():
-            adjusted_name = re.sub(r"[^a-zA-Z0-9]+$", "", adjusted_name)
+            adjusted_name = re.sub(r"^[^a-zA-Z0-9]+", "", adjusted_name)        
         
         if len(adjusted_name) < 3:
             adjusted_name = adjusted_name.ljust(3, "x")
+        
         elif len(adjusted_name) > 63:
             adjusted_name = adjusted_name[:63]
         
@@ -256,7 +255,7 @@ class CustomChatBot:
         
         logger.info("AI Book loaded")
 
-        def clean_text(text):
+        """def clean_text(text):
             # Remove surrogate pairs
             text = re.sub(r'[\ud800-\udfff]', '', text)
             # Optionally remove non-ASCII characters (depends on your use case)
@@ -268,7 +267,7 @@ class CustomChatBot:
             return Document(page_content = cleaned_text, metadata = chunk.metadata)
 
         pages_chunked_cleaned1 = [clean_and_create_document(chunk) for chunk in pages_chunked]
-        pages_chunked_cleaned = [clean_text(chunk.page_content) for chunk in pages_chunked]
+        pages_chunked_cleaned = [clean_text(chunk.page_content) for chunk in pages_chunked]"""
 
     def _initialize_qa_rag_chain(self) -> RunnableSerializable[Serializable, str]:
         """

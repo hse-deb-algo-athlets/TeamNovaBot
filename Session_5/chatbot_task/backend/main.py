@@ -163,18 +163,20 @@ def überprüfeAntwort(antwort:str):
     überprüfung = app.state.chatbot.antwort_überprüfen(lastquestion, antwort, chunk)
     überprüfung = überprüfung.lower()
     
-    if überprüfung=="richtig":
+    if überprüfung == "richtig":
         app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] +=1 
         app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage richtig'] +=1 
         return "korrekte Antwort"
-    elif überprüfung =="falsch":
+    
+    elif überprüfung == "falsch":
         app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] +=1 
         return "falsche Antwort"
+    
     else:
         return "unerwartete Antwort"
 
-
 lastquestion = ""
+
 @app.get("/nächsteFrage")
 def nextQuestion():
     logger.info('nächste Frage wird ausgewählt')

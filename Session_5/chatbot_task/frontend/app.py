@@ -4,6 +4,7 @@ import logging
 
 import pandas as pd
 import requests
+import json
 
 # Set up logging
 logging.basicConfig(level = logging.INFO)
@@ -17,7 +18,7 @@ current_selected_collection = ""
 def upload_pdf(path: str):
     
     if not path:
-        gr.Warning(f"Keine Datei ausgewählt")   
+        gr.Warning(f"Keine Datei ausgewählt !!!")   
 
     logger.info(f"Dateipfad: {path}")
     url = base_url + "upload_pdf"
@@ -113,27 +114,56 @@ async def chat(message: str, history = []):
         yield message
 
 # Platzhalter
-stats = pd.DataFrame(
-  {
-    "Bewertung": ["Korrekt", "Falsch"],
-    "Anzahl": [80, 47]
-  }
-)
+#stats = pd.DataFrame()
+
+# Statistik
+def statistik():
+    try:
+        url = base_url + "Statistik"
+        stat = requests.get(url)
+        stat.raise_for_status()
+        return stat
+    
+    except Exception as e:
+        gr.Warning(f"Fehler beim Statistik erstellen aufgetreten.{e}")
+        logger.error(f"Fehler beim Statistik erstellen aufgetreten.{e}")
 
 # Funktion Fragen generieren
 def fragen_generieren():
-    ...
-    return questions()
+    try:
+        url = base_url + "Fragen"
+        antwort = requests.get(url)
+        antwort.raise_for_status()
+        return "Fragen wurden generiert."
+    
+    except Exception as e:
+        gr.Warning(f"Fehler bei der Generierung von Fragen: {e}")
+        logger.error(f"Fehler bei der Generierung von Fragen: {e}")
 
 # Antworten überprüfen
-def check_antworten():
-    ...
-    return ...
+def check_antworten(answer):
+    try:
+        url = base_url + "Antwort"
+        antwort = requests.post(url, answer)
+        antwort.raise_for_status()
+        
+        return antwort
+    
+    except Exception as e:
+        gr.Warning(f"Fehler bei Antwort check. {e}")
+        logger.error(f"Fehler bei Antwort check. {e}")
 
 # Funktion Generierte Fragen Speichern für Abfrage
 def questions():
-    ...
-    return ...
+    try:
+        url = base_url + "nächsteFrage"
+        frage = requests.get(url)
+        frage.raise_for_status()
+        return frage
+    
+    except Exception as e:
+        gr.Warning(f"Fehler bei der Fragenstellung: {e}")
+        logger.error(f"Fehler bei der Fragenstellung: {e}")
 
 # Funktion Löschen der Collection
 def delete_collection(selected_collection:str):
@@ -167,8 +197,15 @@ def update_dropdown(selected_collection = None):
 
 # Funktion Zusammenfassung generieren
 def zusammenfassung():
-    ...
-    return ...
+    try:
+        url = base_url + "Zusammenfassung"
+        zm = requests.get(url)
+        zm.raise_for_status()
+        return zm
+    
+    except Exception as e:
+        gr.Warning(f"Fehler bei Zusammenfassung. {e}")
+        logger.error(f"Fehler bei Zusammenfassung. {e}")
 
 # ---------------------------------------------------------------------------------------------------------------------
 
@@ -229,21 +266,23 @@ with gr.Blocks() as demo:
                 
                 with gr.Row():
                     butto_generait = gr.Button("Fragen generieren", )
-                    button_new = gr.Button("Ein neue Frage stellen")
+                    button_new = gr.Button("Frage stellen")
                     
                     # Button klicken
                     butto_generait.click(fragen_generieren, outputs = [chat_fenster])
-                    button_new.click(fragen_generieren, outputs = [chat_fenster])
+                    button_new.click(questions, outputs = [chat_fenster])
 
         # Statistikmodus
             with gr.Tab("Statistik"): 
                 with gr.Row():
                     st = gr.BarPlot(
-                                        stats, 
-                                        x = "Bewertung", 
-                                        y = "Anzahl", 
+                                        value = statistik,
+                                        x = "Thema",
+                                        y = "richtig Prozent",
+                                        x_title = "Thema",
+                                        y_title = "Prozent",
                                         color = "Bewertung",
-                                        color_map={"Korrekt": "#75ff33", "Falsch": "#FF5733"}
+                                        color_map = {"Korrekt": "#75ff33", "Falsch": "#FF5733"}
                                     )
                 gr.Button("Statistik laden").click()
 
