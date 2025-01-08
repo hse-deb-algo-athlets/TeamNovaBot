@@ -12,7 +12,7 @@ from random import randint
 
 
 #INDEX_DATA = bool(int(os.environ["INDEX_DATA"]))
-INDEX_DATA = True
+INDEX_DATA = False
 
 # Set up logger
 logger = logging.getLogger("uvicorn")

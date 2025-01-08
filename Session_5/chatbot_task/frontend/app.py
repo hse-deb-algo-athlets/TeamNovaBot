@@ -239,13 +239,13 @@ with gr.Blocks() as demo:
         with gr.Column(scale = 6):
         # ChatBot fenster
             with gr.Tab("Chatbot"): 
-                gr.ChatInterface(
+                    gr.ChatInterface(
                                     fn = chat,
                                     chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
                                     #textbox = gr.Textbox(placeholder = "Frag mich etwas über dein Script...", container = False, scale = 3),
                                     theme = "soft",
                                     examples = ["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
-                                )
+                                    )
 
         # Liste der hochgeladenen PDF Dateien
             with gr.Tab("PDF-Bibliothek"): 
