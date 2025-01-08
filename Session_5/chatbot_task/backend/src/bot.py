@@ -63,7 +63,7 @@ class CustomChatBot:
 
         # Set up the retrieval-augmented generation (RAG) pipeline
         self.qa_rag_chain = self._initialize_qa_rag_chain()
-        self.statistic = pd.DataFrame(columns=['Thema','Fragen Anzahl','Fragen richtig'])
+        self.statistic = pd.DataFrame(columns=['Thema','Fragen Anzahl','Fragen richtig','richtig Prozent'])
         self.Fragen = pd.DataFrame(columns=['Frage','Thema','Chunk'])
 
     def _initialize_chroma_client(self) -> ClientAPI:
@@ -350,7 +350,7 @@ class CustomChatBot:
         i = 0
         for thema in self.Fragen['Thema'].unique():
 
-            self.statistic[i] = {'Thema':thema,'Frage Anzahl':0,'Frage richtig':0}
+            self.statistic[i] = {'Thema':thema,'Frage Anzahl':0,'Frage richtig':0,'richtig Prozent':0}
             i += 1
     
     def zusammenfassung_chain(self,chunk):
