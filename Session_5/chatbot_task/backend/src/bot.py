@@ -18,6 +18,7 @@ from typing import List
 import logging
 import pandas as pd
 import os
+import re
 
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
@@ -335,7 +336,17 @@ class CustomChatBot:
             | StrOutputParser()
         )
         return awnser_chain.invoke({"question":frage,"awnser":antwort,"Kontext":chunk})
-    
+
+     
+    def pattern_match(self, output:str):
+        pattern = r"Frage: (.*)\nThema: (.*)"
+        match = re.match(pattern,output)
+        if match:
+            frage = match.group(1)
+            thema = match.group(2)
+            return (frage ,thema)
+        
+
     def fragen_erstellen(self):
         logger.info('erstelle Fragen')
 
@@ -344,15 +355,18 @@ class CustomChatBot:
         i = 0
         for doc in docs:
             question = self.question_generation_chain(doc)
-            question.split('Thema:')
-            self.Fragen[i] = {'Frage':question[0],'Thema':question[1],'Chunk':doc}
+            output  = self.pattern_match(question)
+            if output != None:
+                self.Fragen[i] = {'Frage': output[0],'Thema':output[1] ,'Chunk':doc}
+        
         logger.info(f'{i+1} Fragen erstellt')
         i = 0
+        
         for thema in self.Fragen['Thema'].unique():
 
             self.statistic[i] = {'Thema':thema,'Frage Anzahl':0,'Frage richtig':0,'richtig Prozent':0}
             i += 1
-    
+  
     def zusammenfassung_chain(self,chunk):
         propmt_template="""
         Du bist ein Assistent um ein Text zum lernen zusammenzufasssen. 
