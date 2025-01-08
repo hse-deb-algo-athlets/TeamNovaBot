@@ -95,11 +95,12 @@ def set_collection(request: CollectionRequest):
     # Setzen der Collection die verwendet werden soll (VectorDB neu initialisieren mit neuer collection)
     collection_name = request.collection_name
     app.state.chatbot.set_vector_db_collection(collection_name)
-    return {"message": f"Collection {collection_name} ausgewählt"}
+    return {"message": f"Collection {collection_name} ausgewählt."}
 
 # Bibliothek Löschen
 @app.put("/delete_collection")
-def delete_collection(collection_name: str):
+def delete_collection(request: CollectionRequest):
+    collection_name = request.collection_name
     result = app.state.chatbot.delete_collection(collection_name)
     return result
 
@@ -197,7 +198,7 @@ def nextQuestion():
 # Statistik laden
 @app.get("/Statistik")
 def getStatistik():
-    return app.state.chatbot.statistic
+    return app.state.chatbot.statistic.to_json()
 
 #Zusammenfassung erstellen
 @app.get("/Zusammenfassung")

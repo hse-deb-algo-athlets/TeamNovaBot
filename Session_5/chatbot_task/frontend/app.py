@@ -21,7 +21,7 @@ def upload_pdf(path: str):
         gr.Warning(f"Keine Datei ausgewählt !!!")   
 
     logger.info(f"Dateipfad: {path}")
-    url = base_url + "upload_pdf"
+    url = base_url + "pdf_upload"
 
     with open(path, "rb") as f:
         logger.info("Datei geladen")
@@ -114,16 +114,17 @@ async def chat(message: str, history = []):
         yield message
 
 # Statistik
-def statistik():
+def statistik() -> pd.DataFrame:
     try:
         url = base_url + "Statistik"
         stat = requests.get(url)
         stat.raise_for_status()
-        return stat
+        return pd.DataFrame(stat.json())
     
     except Exception as e:
         gr.Warning(f"Fehler beim Statistik erstellen aufgetreten.{e}")
         logger.error(f"Fehler beim Statistik erstellen aufgetreten.{e}")
+        return pd.DataFrame()
 
 # Funktion Fragen generieren
 def fragen_generieren():
@@ -171,11 +172,15 @@ def delete_collection(selected_collection:str):
 
         response = requests.put(url, json = data)
         response.raise_for_status()
-        logger.info(f"Collection {selected_collection} gelöscht")
-        gr.Info(f"Collection {selected_collection} gelöscht")
+        logger.info(f"Collection {selected_collection} gelöscht.")
+        gr.Info(f"Collection {selected_collection} gelöscht.")
+        
         return True
-    except:
-        gr.Warning(f"Fehler beim Löschen von {selected_collection}")
+    
+    except Exception as e:
+        gr.Warning(f"Fehler beim Löschen von {selected_collection}.")
+        logger.error(f"Fehler beim Löschen der Daten. {e}")
+        
         return False
 
 # Funktion Update Liste
@@ -190,7 +195,8 @@ def update_dropdown(selected_collection = None):
         
     new_choices = get_collections()
     selected_value = selected_collection if selected_collection else (new_choices[0] if new_choices else None)
-    return gr.Dropdown(choices=new_choices, value=selected_value)
+    
+    return gr.Dropdown(choices = new_choices, value = selected_value)
 
 # Funktion Zusammenfassung generieren
 def zusammenfassung():
@@ -222,9 +228,14 @@ with gr.Blocks() as demo:
                                       interactive = True,
                                       min_width = 50
                                      )
+            upload_button = gr.UploadButton("Datei hinzufügen", file_types = [".pdf"], file_count = "single")
+            
+            upload_button.upload(upload_pdf, inputs = upload_button, outputs = [auswahl_PDF, collections_state])
+            auswahl_PDF.change(set_collection, inputs = auswahl_PDF)           
+
         with gr.Column(scale = 1):
             chatbot_picture = gr.Image(value = "Bilder/HeadPic.jpeg", 
-                                       width = 150,
+                                       width = 250,
                                        container = False,
                                        show_fullscreen_button = False, 
                                        show_download_button = False
@@ -234,19 +245,25 @@ with gr.Blocks() as demo:
         with gr.Column(scale = 6):
         # ChatBot fenster
             with gr.Tab("Chatbot"): 
-                    gr.ChatInterface(
+                    out = gr.ChatInterface(
                                     fn = chat,
                                     chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
                                     #textbox = gr.Textbox(placeholder = "Frag mich etwas über dein Script...", container = False, scale = 3),
                                     theme = "soft",
+                                    submit_btn = "Antworte",
                                     examples = ["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
                                     )
+                    zm = gr.Button("Zusammenfassung erstellen")
+                    # out = gr.Textbox(label = "Ausgabe:", min_width = 150)
+                    zm.click(fn = zusammenfassung, outputs = out)
 
         # Liste der hochgeladenen PDF Dateien
+            """
             with gr.Tab("PDF-Bibliothek"): 
                 upload_button = gr.UploadButton("Datei hinzufügen", file_types = [".pdf"], file_count = "single")
-                output = gr.List(label = "Die hochgeladenen Dateien sind: ", value = collections)
-                upload_button.upload(upload_pdf, inputs = upload_button, outputs = [auswahl_PDF, output])
+                output = gr.Textbox(value = collections)
+                
+                upload_button.upload(upload_pdf, inputs = upload_button, outputs = [auswahl_PDF, output])"""
 
         # Karteikartenmodus
             with gr.Tab("Karteikarten-Lernen"): 
@@ -255,12 +272,13 @@ with gr.Blocks() as demo:
                                                     chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
                                                     retry_btn = None,
                                                     undo_btn = None,
+                                                    submit_btn = "Check",
                                                     textbox = gr.Textbox(placeholder = "Wie lautet deine Antwort?", container = False, scale = 3),
                                                     theme = "soft",
                                                 )
                 
                 with gr.Row():
-                    butto_generait = gr.Button("Fragen generieren", )
+                    butto_generait = gr.Button("Fragen generieren")
                     button_new = gr.Button("Frage stellen")
                     
                     # Button klicken
@@ -271,7 +289,7 @@ with gr.Blocks() as demo:
             with gr.Tab("Statistik"): 
                 with gr.Row():
                     st = gr.BarPlot(
-                                        value = statistik,
+                                        value = statistik(),
                                         x = "Thema",
                                         y = "richtig Prozent",
                                         x_title = "Thema",
@@ -279,7 +297,7 @@ with gr.Blocks() as demo:
                                         color = "Bewertung",
                                         color_map = {"Korrekt": "#75ff33", "Falsch": "#FF5733"}
                                     )
-                gr.Button("Statistik laden").click()
+                gr.Button("Statistik laden").click(statistik, outputs = st)
 
         # Verwaltungsmodus
             with gr.Tab("Verwaltung"):
@@ -303,18 +321,17 @@ with gr.Blocks() as demo:
                          
                         delete_btn.click(delete, None, [collections_state, auswahl_PDF])
 
+                """
                 with gr.Row():
-                    button_delete = gr.Button("Liste löschen")
-  
+                    button_delete = gr.Button("Liste löschen") 
                     # Button Klick
-                    button_delete.click(delete_collection)
+                    button_delete.click(delete_collection)"""
                 
-        demo.load(update_dropdown, outputs = auswahl_PDF)
-        demo.load(get_collections, outputs = collections_state)
-    demo.launch(debug = True)
+    demo.load(update_dropdown, outputs = auswahl_PDF)
+    demo.load(get_collections, outputs = collections_state)
+demo.launch(debug = True)
 # ---------------------------------------------------------------------------------------------------------------------
-
-# Launch Gradio Chat Interface
+# Launch Gradio Chat Interface alt
 """
 gr.ChatInterface(
     fn = chat,

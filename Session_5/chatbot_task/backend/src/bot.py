@@ -58,21 +58,14 @@ class CustomChatBot:
 
         # Initialize the large language model (LLM) from Ollama
         # TODO: ADD HERE YOUR CODE ================================================================================
-        # Mein Part (Marie)
-        """model = "llama3.2"
-        self.llm = ChatOllama(model = model, base_url = "http://ollama:11434")"""
-        
-        # TODO: ADD HERE YOUR CODE
-        self.llm = ChatOllama(model="llama3.2")
+        model = "llama3.2"
+        self.llm = ChatOllama(model = model, base_url = "http://ollama:11434")
 
         # Set up the retrieval-augmented generation (RAG) pipeline
         self.qa_rag_chain = self._initialize_qa_rag_chain()
+        self.statistic = pd.DataFrame(columns=['Thema','Fragen Anzahl','Fragen richtig','richtig Prozent'])
+        self.Fragen = pd.DataFrame(columns=['Frage','Thema','Chunk'])
 
-        # Set up the retrieval-augmented generation (RAG) pipeline
-        self.qa_rag_chain = self._initialize_qa_rag_chain()
-        self.statistic = pd.DataFrame()
-        self.Fragen = pd.DataFrame()
-          
     def _initialize_chroma_client(self) -> ClientAPI:
         """
         Initialize and return a ChromaDB HTTP client for document retrieval.
@@ -83,7 +76,7 @@ class CustomChatBot:
         logger.info("Initialize chroma db client.")
 
         # TODO: ADD HERE YOUR CODE =================================================================================
-        """client   = chromadb.HttpClient(
+        client   = chromadb.HttpClient(
             host     = "chroma",
             port     = 8000,
             ssl      = False,
@@ -91,16 +84,6 @@ class CustomChatBot:
             settings = Settings(allow_reset=True, anonymized_telemetry = False),
             tenant   = DEFAULT_TENANT,
             database = DEFAULT_DATABASE,
-        """
-        # TODO: ADD HERE YOUR CODE
-        client = chromadb.HttpClient(
-         host = "chroma",
-         port = 8000,
-         ssl = False,
-         headers = None,
-         settings = Settings(allow_reset=True, anonymized_telemetry=False),
-         tenant = DEFAULT_TENANT,
-         database = DEFAULT_DATABASE,
         )
         return client
 
@@ -133,11 +116,12 @@ class CustomChatBot:
         adjusted_name = re.sub(r"[^a-zA-Z0-9_-]", "", pdf_name)
         
         if adjusted_name and not adjusted_name[0].isalnum():
-            adjusted_name = re.sub(r"^[^a-zA-Z0-9]+", "", adjusted_name)        
+            adjusted_name = re.sub(r"^[^a-zA-Z0-9]+", "", adjusted_name)
+        if adjusted_name and not adjusted_name[-1].isalnum():
+            adjusted_name = re.sub(r"[^a-zA-Z0-9]+$", "", adjusted_name)
         
         if len(adjusted_name) < 3:
             adjusted_name = adjusted_name.ljust(3, "x")
-        
         elif len(adjusted_name) > 63:
             adjusted_name = adjusted_name[:63]
         
@@ -184,12 +168,7 @@ class CustomChatBot:
             text = re.sub(r'[\ud800-\udfff]', '', text)
             # Optionally remove non-ASCII characters (depends on your use case)
             #text = re.sub(r'[^\x00-\x7F]+', '', text)
-            return Document(page_content = text, metadata = chunk.metadata)
-        
-            # TODO: ADD HERE YOUR CODE (Simon)
-            """collection = self.client.get_or_create_collection("Chatbot-Collection")
-            vector_db_from_client = Chroma(client = self.client, collection_name = collection.name, embedding_function = self.embedding_function)
-            return vector_db_from_client   """   
+            return Document(page_content=text, metadata=chunk.metadata)
     
     def index_file_to_vector_db(self, path: str):
         loader = PyPDFLoader(file_path=path)
@@ -214,33 +193,10 @@ class CustomChatBot:
     def _index_data_to_vector_db(self):
 
         # TODO: ADD HERE YOUR CODE =================================================================================
-        """
         text = "This is a test document."
         query_vector = text
-        """
-        
-        # TODO: ADD HERE YOUR CODE (Simon)
-        
-        pdf_doc = "./AI_Book.pdf"
-        loader = PyPDFLoader(file_path=pdf_doc)
-        pages_chunked = RecursiveCharacterTextSplitter(chunk_size = 10000,chunk_overlap = 20).split_documents(documents = loader.load())
-        
-        def clean_text(text):
-             # Remove surrogate pairs
-             text = re.sub(r'[\ud800-\udfff]', '', text)
-             # Optionally remove non-ASCII characters (depends on your use case)
-             text = re.sub(r'[^\x00-\x7F]+', '', text)
-             return text
-        
-        def clean_and_create_document(chunk):
-            cleaned_text = clean_text(chunk.page_content)
-            return Document(page_content=cleaned_text,metadata=chunk.metadata)
-        
-        pages_chunked_cleaned = [clean_and_create_document (chunk) for chunk in pages_chunked]
-        uuids = [str(uuid4()) for _ in range(len(pages_chunked_cleaned[:50]))]
-        self.vector_db.add_documents(documents=pages_chunked_cleaned[:50],id=uuids)
 
-        pdf_doc = "./src/AI_Book.pdf"
+        pdf_doc = "src/AI_Book.pdf"
 
         loader = PyPDFLoader(
         file_path = pdf_doc,
@@ -256,7 +212,6 @@ class CustomChatBot:
         
         logger.info("AI Book loaded")
 
-        """
         def clean_text(text):
             # Remove surrogate pairs
             text = re.sub(r'[\ud800-\udfff]', '', text)
@@ -270,7 +225,6 @@ class CustomChatBot:
 
         pages_chunked_cleaned1 = [clean_and_create_document(chunk) for chunk in pages_chunked]
         pages_chunked_cleaned = [clean_text(chunk.page_content) for chunk in pages_chunked]
-        """
 
     def _initialize_qa_rag_chain(self) -> RunnableSerializable[Serializable, str]:
         """
@@ -286,17 +240,13 @@ class CustomChatBot:
         """
 
         # TODO: ADD HERE YOUR CODE =================================================================================
-        
-        """
-        prompt_template = 
-        You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. 
-        If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
+        prompt_template = """
+        Du bist ein Assistent um Fragen zu beantworten benutze die Information aus dem Kontext um die Frage zu beantworten
         <context>
         {context}
         </context>
         Answer the following question: {question}"""
 
-        """
         rag_prompt = ChatPromptTemplate.from_template(prompt_template)
 
         retriever = self.vector_db.as_retriever(search_kwargs = {"k" : 3})
@@ -306,31 +256,8 @@ class CustomChatBot:
             | self.llm
             | StrOutputParser()
         )
-        return qa_rag_chain
-        """
-        
-        # TODO: ADD HERE YOUR CODE
-        retriever = self.vector_db.as_retriever()
-        prompt_template = """
-        You are an assistant for question-answering tasks. 
-        Use the following pieces of retrieved context to answer the question. 
-        If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
-        <context>
-        {context}
-        </context>
+        return qa_rag_chain 
 
-        Answer the following question:
-        {question}
-        """
-        rag_prompt = ChatPromptTemplate.from_template(prompt_template)
-        qa_rag_chain = (
-         {"context": retriever | self._format_docs, "question": RunnablePassthrough(input_type=str)}
-         | rag_prompt
-         | self.llm
-         | StrOutputParser()
-        )
-        return qa_rag_chain
-   
     def _format_docs(self, docs: List[Document]) -> str:
         """
         Helper function to format the retrieved documents into a single string.
@@ -343,13 +270,8 @@ class CustomChatBot:
         """
 
         # TODO: ADD HERE YOUR CODE =================================================================================
-        """
         for i, doc in enumerate(docs):
             logger.info(f"Dokument {i+1}: {doc.page_content}, Metadaten: {doc.metadata}")
-        """
-        
-        # TODO: ADD HERE YOUR CODE
-    
         return "\n\n".join(doc.page_content for doc in docs)
 
     async def astream(self, question: str):
@@ -363,24 +285,18 @@ class CustomChatBot:
             str: The generated answer from the model, streamed chunk by chunk.
         """
         logger.info("Streaming RAG chain response.")
-        
         try:
             async for chunk in self.qa_rag_chain.astream(question):
                 logger.debug(f"Yielding chunk: {chunk}")
-                
                 yield chunk
-        
         except Exception as e:
             logger.error(f"Error in stream_answer: {e}", exc_info=True)
             raise
-        
         finally:
             logger.info("Stream complete")
-        
-    # ------------------------------------------------------------------------------------------ Ergänst von Simon 
-
+   
     def question_generation_chain(self,chunk):
-        propmt_template = """
+        propmt_template="""
         Du bist ein Assistent um Fragen zu einem bestimmten Thema mithilfe eines gegebenen Textes zu erstellen. Gebe zusätzlich ein Allgemeines Thema an zu dem es gehört.
         Die Frage soll das vorgegebene Format haben. Benutzte keine weitere Formatierung.
         
@@ -397,10 +313,10 @@ class CustomChatBot:
             {"context" : RunnablePassthrough()}
             | prompt
             | self.llm
-            | StrOutputParser())
-        
+            | StrOutputParser()
+        )
         return question_chain.invoke({"context":chunk})
-
+   
     def antwort_überprüfen(self,frage,antwort,chunk):
         propmt_template = """
         Du bist ein Assistent um Antworten auf Fragen zu überprüfen und anhand des context zu bewerten.
@@ -413,23 +329,56 @@ class CustomChatBot:
         prompt = ChatPromptTemplate.from_template(propmt_template)
 
         awnser_chain = (
-            {"question" : RunnablePassthrough(),"awnser":RunnablePassthrough(),"Kontext":RunnablePassthrough()}
+            {"question" : RunnablePassthrough(), "awnser":RunnablePassthrough(), "Kontext":RunnablePassthrough()}
             | prompt
             | self.llm
             | StrOutputParser()
         )
-        return awnser_chain.invoke({"question":frage,"awnser":antwort,"Kontext":chunk})
-
+        return awnser_chain.invoke({"question":frage, "awnser":antwort, "Kontext":chunk})
+    
     def fragen_erstellen(self):
+        logger.info('erstelle Fragen')
+
         collection =self.client.get_collection(self.get_current_collection())
         docs = collection.get()["documents"] or[]
         i = 0
         for doc in docs:
             question = self.question_generation_chain(doc)
             question.split('Thema:')
-            self.Fragen[i] = {'Frage':question[0],'Thema':question[1]}
-       
+            self.Fragen[i] = {'Frage':question[0],'Thema':question[1],'Chunk':doc}
+        logger.info(f'{i+1} Fragen erstellt')
+        i = 0
         for thema in self.Fragen['Thema'].unique():
-            self.statistic['Thema'] = thema
 
-#ENDE
+            self.statistic[i] = {'Thema':thema,'Frage Anzahl':0, 'Frage richtig':0, 'richtig Prozent':0}
+            i += 1
+    
+    def zusammenfassung_chain(self,chunk):
+        propmt_template="""
+        Du bist ein Assistent um ein Text zum lernen zusammenzufasssen. 
+        Fasse die wichtigsten Informationen des Textes zusammen. Halte dich möglichst kurz.
+        
+        Hier ist der gegebene Text:
+        {context}
+        """
+        prompt = ChatPromptTemplate.from_template(propmt_template)
+
+        question_chain = (
+            {"context" : RunnablePassthrough()}
+            | prompt
+            | self.llm
+            | StrOutputParser()
+        )
+        return question_chain.invoke({"context":chunk})
+
+    def zusammenfassung_erstellen(self):
+        logger.info("erstelle Zusammenfassung")   
+        collection =self.client.get_collection(self.get_current_collection())
+        docs = collection.get()["documents"] or[]
+        zusammenfassungEinzel = ""
+        for doc in docs:
+            zusammenfassungEinzel += '\n' + self.zusammenfassung_chain(doc)
+        
+        logger.info("Einzel Zusammenfassungen erstellt")
+        zusammenfassungGesamt = self.zusammenfassung_chain(zusammenfassungEinzel)
+        return zusammenfassungGesamt
