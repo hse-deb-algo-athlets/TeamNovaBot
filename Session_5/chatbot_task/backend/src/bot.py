@@ -63,8 +63,8 @@ class CustomChatBot:
 
         # Set up the retrieval-augmented generation (RAG) pipeline
         self.qa_rag_chain = self._initialize_qa_rag_chain()
-        self.statistic = pd.DataFrame()
-        self.Fragen = pd.DataFrame()
+        self.statistic = pd.DataFrame(columns=['Thema','Fragen Anzahl','Fragen richtig'])
+        self.Fragen = pd.DataFrame(columns=['Frage','Thema','Chunk'])
 
     def _initialize_chroma_client(self) -> ClientAPI:
         """
@@ -337,7 +337,7 @@ class CustomChatBot:
         return awnser_chain.invoke({"question":frage,"awnser":antwort,"Kontext":chunk})
     
     def fragen_erstellen(self):
-        
+        logger.info('erstelle Fragen')
 
         collection =self.client.get_collection(self.get_current_collection())
         docs = collection.get()["documents"] or[]
@@ -345,7 +345,40 @@ class CustomChatBot:
         for doc in docs:
             question = self.question_generation_chain(doc)
             question.split('Thema:')
-            self.Fragen[i] = {'Frage':question[0],'Thema':question[1]}
-       
+            self.Fragen[i] = {'Frage':question[0],'Thema':question[1],'Chunk':doc}
+        logger.info(f'{i+1} Fragen erstellt')
+        i = 0
         for thema in self.Fragen['Thema'].unique():
-            self.statistic['Thema'] = thema
+
+            self.statistic[i] = {'Thema':thema,'Frage Anzahl':0,'Frage richtig':0}
+            i += 1
+    
+    def zusammenfassung_chain(self,chunk):
+        propmt_template="""
+        Du bist ein Assistent um ein Text zum lernen zusammenzufasssen. 
+        Fasse die wichtigsten Informationen des Textes zusammen. Halte dich möglichst kurz.
+        
+        Hier ist der gegebene Text:
+        {context}
+        """
+        prompt = ChatPromptTemplate.from_template(propmt_template)
+
+        question_chain = (
+            {"context" : RunnablePassthrough()}
+            | prompt
+            | self.llm
+            | StrOutputParser()
+        )
+        return question_chain.invoke({"context":chunk})
+
+    def zusammenfassung_erstellen(self):
+        logger.info("erstelle Zusammenfassung")   
+        collection =self.client.get_collection(self.get_current_collection())
+        docs = collection.get()["documents"] or[]
+        zusammenfassungEinzel = ""
+        for doc in docs:
+            zusammenfassungEinzel += '\n' + self.zusammenfassung_chain(doc)
+        
+        logger.info("Einzel Zusammenfassungen erstellt")
+        zusammenfassungGesamt = self.zusammenfassung_chain(zusammenfassungEinzel)
+        return zusammenfassungGesamt
