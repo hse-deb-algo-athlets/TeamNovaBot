@@ -73,7 +73,6 @@ def delete_collection(selected_collection:str):
         gr.Warning(f"Fehler beim Löschen von {selected_collection}")
         return False
 
-
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 with gr.Blocks() as demo:
     collections = get_collections()
@@ -81,6 +80,7 @@ with gr.Blocks() as demo:
     collections_state = gr.State(collections) #State um Collections zu speichern, bei Änderung wird Verwaltung neu gerendert
     #logger.info(f"Collections: {collections}, collection state {collections_state}")
 
+    # Head line
     with gr.Row(equal_height = True):
         with gr.Column(scale = 4):
             head_line = gr.Markdown("# Nova ChatBot")
@@ -107,7 +107,7 @@ with gr.Blocks() as demo:
                     chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
                     #textbox = gr.Textbox(placeholder = "Frag mich etwas über dein Script...", container = False, scale = 3),
                     theme = "soft",
-                    examples=["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
+                    examples = ["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
                 )
 
         # Liste der hochgeladenen PDF Dateien
@@ -118,8 +118,14 @@ with gr.Blocks() as demo:
 
         # Karteikartenmodus
             with gr.Tab("Karteikarten-Lernen"): 
-                chat_fenster = gr.Chatbot(height = 300) 	                   # Chatfenster für Verlauf
-                text_fenster = gr.Textbox(label = "Antwort: ")                 # Textfeld für Antwort
+                chat_fenster = gr.ChatInterface(
+                                                    fn = chat_great,
+                                                    chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
+                                                    retry_btn = None,
+                                                    undo_btn = None,
+                                                    textbox = gr.Textbox(placeholder = "Wie lautet deine Antwort?", container = False, scale = 3),
+                                                    theme = "soft",
+                                                )
                 
                 with gr.Row():
                     butto_generait = gr.Button("Fragen generieren", )

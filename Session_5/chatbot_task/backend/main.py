@@ -8,6 +8,8 @@ from contextlib import asynccontextmanager
 import traceback
 import os
 from src.bot import CustomChatBot
+from random import randint
+
 
 #INDEX_DATA = bool(int(os.environ["INDEX_DATA"]))
 INDEX_DATA = True
@@ -147,3 +149,48 @@ async def websocket_endpoint(websocket: WebSocket):
 if __name__ == "__main__":
     # Run the FastAPI app with uvicorn
     uvicorn.run("main:app", host = "backend", port = 5001, reload = True, log_level = "debug")
+
+
+@app.get("/Fragen")
+def getFrage():
+    app.state.chatbot.fragen_erstellen()
+    return app.state.chatbot.Fragen
+
+@app.get("/Antwort")
+def überprüfeAntwort(antwort:str):
+    chunk = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Frage'] == lastquestion]['Chunk']
+    thema = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Frage'] == lastquestion]['Thema']
+    überprüfung = app.state.chatbot.antwort_überprüfen(lastquestion, antwort, chunk)
+    überprüfung = überprüfung.lower()
+    
+    if überprüfung=="richtig":
+        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] +=1 
+        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage richtig'] +=1 
+        return "korrekte Antwort"
+    elif überprüfung =="falsch":
+        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] +=1 
+        return "falsche Antwort"
+    else:
+        return "unerwartete Antwort"
+
+
+lastquestion = ""
+@app.get("/nächsteFrage")
+def nextQuestion():
+    logger.info('nächste Frage wird ausgewählt')
+    app.state.chatbot.statistic['richtig Prozent'] = app.state.chatbot.statistic['Frage richtig']/app.state.chatbot.statistic['Frage Anzahl']*100
+    thema = app.state.chatbot.statistic[app.state.chatbot.statistic['richtig Prozent'].idxmin()]['thema']
+    questions = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Thema']==thema]['Frage']
+    question = questions[randint(0,len(questions))]
+    lastquestion = question
+    return question
+
+@app.get("/Statistik")
+def getStatistik():
+    return app.state.chatbot.statistic
+
+@app.get("/Zusammenfassung")
+def getZusammenfassung():
+    zusammenfassung = app.state.chatbot.zusammenfassung_erstellen()
+    logger.info("Zusammenfassung erstelllt")
+    return zusammenfassung

@@ -72,10 +72,7 @@ class CustomChatBot:
         self.qa_rag_chain = self._initialize_qa_rag_chain()
         self.statistic = pd.DataFrame()
         self.Fragen = pd.DataFrame()
-        
-
-        
-
+          
     def _initialize_chroma_client(self) -> ClientAPI:
         """
         Initialize and return a ChromaDB HTTP client for document retrieval.
