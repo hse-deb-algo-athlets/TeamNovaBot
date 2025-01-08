@@ -187,10 +187,9 @@ class CustomChatBot:
             return Document(page_content = text, metadata = chunk.metadata)
         
             # TODO: ADD HERE YOUR CODE (Simon)
-            collection = self.client.get_or_create_collection("Chatbot-Collection")
+            """collection = self.client.get_or_create_collection("Chatbot-Collection")
             vector_db_from_client = Chroma(client = self.client, collection_name = collection.name, embedding_function = self.embedding_function)
-            return vector_db_from_client
-        
+            return vector_db_from_client   """   
     
     def index_file_to_vector_db(self, path: str):
         loader = PyPDFLoader(file_path=path)
@@ -215,8 +214,10 @@ class CustomChatBot:
     def _index_data_to_vector_db(self):
 
         # TODO: ADD HERE YOUR CODE =================================================================================
-        """text = "This is a test document."
-        query_vector = text"""
+        """
+        text = "This is a test document."
+        query_vector = text
+        """
         
         # TODO: ADD HERE YOUR CODE (Simon)
         
@@ -255,7 +256,8 @@ class CustomChatBot:
         
         logger.info("AI Book loaded")
 
-        """def clean_text(text):
+        """
+        def clean_text(text):
             # Remove surrogate pairs
             text = re.sub(r'[\ud800-\udfff]', '', text)
             # Optionally remove non-ASCII characters (depends on your use case)
@@ -267,7 +269,8 @@ class CustomChatBot:
             return Document(page_content = cleaned_text, metadata = chunk.metadata)
 
         pages_chunked_cleaned1 = [clean_and_create_document(chunk) for chunk in pages_chunked]
-        pages_chunked_cleaned = [clean_text(chunk.page_content) for chunk in pages_chunked]"""
+        pages_chunked_cleaned = [clean_text(chunk.page_content) for chunk in pages_chunked]
+        """
 
     def _initialize_qa_rag_chain(self) -> RunnableSerializable[Serializable, str]:
         """
@@ -284,7 +287,8 @@ class CustomChatBot:
 
         # TODO: ADD HERE YOUR CODE =================================================================================
         
-        prompt_template = """
+        """
+        prompt_template = 
         You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. 
         If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
         <context>
@@ -292,7 +296,8 @@ class CustomChatBot:
         </context>
         Answer the following question: {question}"""
 
-        """rag_prompt = ChatPromptTemplate.from_template(prompt_template)
+        """
+        rag_prompt = ChatPromptTemplate.from_template(prompt_template)
 
         retriever = self.vector_db.as_retriever(search_kwargs = {"k" : 3})
 
@@ -301,20 +306,22 @@ class CustomChatBot:
             | self.llm
             | StrOutputParser()
         )
-        return qa_rag_chain """
+        return qa_rag_chain
+        """
         
         # TODO: ADD HERE YOUR CODE
-        retriever=self.vector_db.as_retriever()
+        retriever = self.vector_db.as_retriever()
         prompt_template = """
-         You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
-
+        You are an assistant for question-answering tasks. 
+        Use the following pieces of retrieved context to answer the question. 
+        If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
         <context>
         {context}
         </context>
 
         Answer the following question:
-
-        {question}"""
+        {question}
+        """
         rag_prompt = ChatPromptTemplate.from_template(prompt_template)
         qa_rag_chain = (
          {"context": retriever | self._format_docs, "question": RunnablePassthrough(input_type=str)}
@@ -336,7 +343,8 @@ class CustomChatBot:
         """
 
         # TODO: ADD HERE YOUR CODE =================================================================================
-        """for i, doc in enumerate(docs):
+        """
+        for i, doc in enumerate(docs):
             logger.info(f"Dokument {i+1}: {doc.page_content}, Metadaten: {doc.metadata}")
         """
         
@@ -355,20 +363,24 @@ class CustomChatBot:
             str: The generated answer from the model, streamed chunk by chunk.
         """
         logger.info("Streaming RAG chain response.")
+        
         try:
             async for chunk in self.qa_rag_chain.astream(question):
                 logger.debug(f"Yielding chunk: {chunk}")
+                
                 yield chunk
+        
         except Exception as e:
             logger.error(f"Error in stream_answer: {e}", exc_info=True)
             raise
-        """finally:
-            logger.info("Stream complete")"""
+        
+        finally:
+            logger.info("Stream complete")
         
     # ------------------------------------------------------------------------------------------ Ergänst von Simon 
 
     def question_generation_chain(self,chunk):
-        propmt_template="""
+        propmt_template = """
         Du bist ein Assistent um Fragen zu einem bestimmten Thema mithilfe eines gegebenen Textes zu erstellen. Gebe zusätzlich ein Allgemeines Thema an zu dem es gehört.
         Die Frage soll das vorgegebene Format haben. Benutzte keine weitere Formatierung.
         
@@ -385,12 +397,12 @@ class CustomChatBot:
             {"context" : RunnablePassthrough()}
             | prompt
             | self.llm
-            | StrOutputParser()
-        )
+            | StrOutputParser())
+        
         return question_chain.invoke({"context":chunk})
 
     def antwort_überprüfen(self,frage,antwort,chunk):
-        propmt_template="""
+        propmt_template = """
         Du bist ein Assistent um Antworten auf Fragen zu überprüfen und anhand des context zu bewerten.
         Nimm die gegebene Frage und überprüfe ob die Antwort dazu passt.
         Antworte nur mit richtig oder falsch
@@ -419,3 +431,5 @@ class CustomChatBot:
        
         for thema in self.Fragen['Thema'].unique():
             self.statistic['Thema'] = thema
+
+#ENDE

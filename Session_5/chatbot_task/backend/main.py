@@ -1,12 +1,16 @@
 from fastapi import (FastAPI, File, HTTPException, UploadFile, WebSocket,WebSocketDisconnect)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 from pydantic import BaseModel
 import uvicorn
+
 import logging
 from contextlib import asynccontextmanager
+
 import traceback
 import os
+
 from src.bot import CustomChatBot
 from random import randint
 
@@ -47,7 +51,6 @@ class CollectionRequest(BaseModel):
     collection_name: str
 
 # _________________________________________________________________________________________
-
 # Dateien hochladen
 @app.post("/pdf_upload")
 async def pdf_upload(file: UploadFile = File(...)):
@@ -66,21 +69,26 @@ async def pdf_upload(file: UploadFile = File(...)):
         if True:
             logger.debug("Lade Datei in Vector DB...")
             app.state.chatbot.index_file_to_vector_db(file_path)
-        return JSONResponse(content={"message": f"Datei '{filename}' erfolgreich hochgeladen!"})
+        
+        return JSONResponse(content = {"message": f"Datei '{filename}' erfolgreich hochgeladen!"})
     
     except Exception as e:
-         return JSONResponse(status_code=500, content={"message": "Fehler beim Hochladen", "error": str(e)})
+         
+        return JSONResponse(status_code=500, content = {"message": "Fehler beim Hochladen", "error": str(e)})
 
 # PDF Bibliothek
 @app.get("/get_collections")
 def get_collections():
     collections = app.state.chatbot.get_vector_db_collections()
+    
     return collections
 
+# Abfrage der aktuellen aktiven Sammlung (PDF Bib)
 @app.get("/get_current_collection")
 def get_current_collection():
     collection = app.state.chatbot.get_current_collection()
-    return CollectionRequest(collection_name= collection)
+    
+    return CollectionRequest(collection_name = collection)
 
 @app.post("/set_collection")
 def set_collection(request: CollectionRequest):
@@ -94,11 +102,6 @@ def set_collection(request: CollectionRequest):
 def delete_collection(collection_name: str):
     result = app.state.chatbot.delete_collection(collection_name)
     return result
-
-# Fragen generieren
-@app.post("/generate_questions")
-def generate_questions():
-    return app.state.chatbot.generate_questions()
 
 # _________________________________________________________________________________________
 
@@ -150,12 +153,15 @@ if __name__ == "__main__":
     # Run the FastAPI app with uvicorn
     uvicorn.run("main:app", host = "backend", port = 5001, reload = True, log_level = "debug")
 
+# SIMON: ==================================================================================
 
+# Fragen generieren
 @app.get("/Fragen")
 def getFrage():
     app.state.chatbot.fragen_erstellen()
     return app.state.chatbot.Fragen
 
+#Antworten korregieren
 @app.get("/Antwort")
 def überprüfeAntwort(antwort:str):
     chunk = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Frage'] == lastquestion]['Chunk']
@@ -177,6 +183,7 @@ def überprüfeAntwort(antwort:str):
 
 lastquestion = ""
 
+# Nächste Frage stellen
 @app.get("/nächsteFrage")
 def nextQuestion():
     logger.info('nächste Frage wird ausgewählt')
@@ -187,10 +194,12 @@ def nextQuestion():
     lastquestion = question
     return question
 
+# Statistik laden
 @app.get("/Statistik")
 def getStatistik():
     return app.state.chatbot.statistic
 
+#Zusammenfassung erstellen
 @app.get("/Zusammenfassung")
 def getZusammenfassung():
     zusammenfassung = app.state.chatbot.zusammenfassung_erstellen()

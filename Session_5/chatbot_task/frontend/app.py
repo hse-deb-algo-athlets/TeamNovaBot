@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 base_url = "http://backend:5001/"
 
-current_selected_collection = ""
+current_selected_collection = " "
 
 # PDf hochladen:
 def upload_pdf(path: str):
@@ -79,7 +79,7 @@ async def websocket_chat(message: str):
             logger.info(f"Sending message to WebSocket: {message}")
             await websocket.send(message)
 
-            # Continuously receive and yield chunks until the connection is closed
+            # Kontinuierlich Chunks empfangen und liefern, bis die Verbindung geschlossen wird
             while True:
                 try:
                     chunk = await websocket.recv()
@@ -112,9 +112,6 @@ async def chat(message: str, history = []):
     except Exception as e:
         message = f"Error: {e}"
         yield message
-
-# Platzhalter
-#stats = pd.DataFrame()
 
 # Statistik
 def statistik():
@@ -208,14 +205,12 @@ def zusammenfassung():
         logger.error(f"Fehler bei Zusammenfassung. {e}")
 
 # ---------------------------------------------------------------------------------------------------------------------
-
 with gr.Blocks() as demo:
     collections = get_collections()
 
     # State um Collections zu speichern, bei Änderung wird Verwaltung neu gerendert
     collections_state = gr.State(collections) 
     logger.info(f"Collections: {collections}, collection state {collections_state}")
-
 
     with gr.Row():      
         with gr.Column(scale = 4):
@@ -314,10 +309,9 @@ with gr.Blocks() as demo:
                     # Button Klick
                     button_delete.click(delete_collection)
                 
-            demo.load(update_dropdown, outputs = auswahl_PDF)
-            demo.load(get_collections, outputs = collections_state)
-demo.launch(debug = True)
-
+        demo.load(update_dropdown, outputs = auswahl_PDF)
+        demo.load(get_collections, outputs = collections_state)
+    demo.launch(debug = True)
 # ---------------------------------------------------------------------------------------------------------------------
 
 # Launch Gradio Chat Interface

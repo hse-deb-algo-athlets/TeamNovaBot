@@ -81,7 +81,7 @@ with gr.Blocks() as demo:
     #logger.info(f"Collections: {collections}, collection state {collections_state}")
 
     # Head line
-    with gr.Row(equal_height = True):
+    with gr.Row():
         with gr.Column(scale = 4):
             head_line = gr.Markdown("# Nova ChatBot")
             auswahl_PDF = gr.Dropdown(label = "PDF Auswahl",
@@ -129,7 +129,7 @@ with gr.Blocks() as demo:
                 
                 with gr.Row():
                     butto_generait = gr.Button("Fragen generieren", )
-                    button_new = gr.Button("Ein neue Frage stellen")
+                    button_new = gr.Button("Frage stellen")
                     
                     # Button klicken
                     butto_generait.click(fragen_generieren, outputs = [chat_fenster])
