@@ -94,7 +94,7 @@ class CustomChatBot:
         """
         # TODO: ADD HERE YOUR CODE
         client = chromadb.HttpClient(
-         host = "localhost",
+         host = "chroma",
          port = 8000,
          ssl = False,
          headers = None,
@@ -239,7 +239,7 @@ class CustomChatBot:
         uuids = [str(uuid4()) for _ in range(len(pages_chunked_cleaned[:50]))]
         self.vector_db.add_documents(documents=pages_chunked_cleaned[:50],id=uuids)
 
-        pdf_doc = "src/AI_Book.pdf"
+        pdf_doc = "./src/AI_Book.pdf"
 
         loader = PyPDFLoader(
         file_path = pdf_doc,
