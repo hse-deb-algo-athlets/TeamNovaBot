@@ -185,7 +185,7 @@ def überprüfeAntwort(antwort:str):
 lastquestion = " "
 
 # Nächste Frage stellen
-@app.get("/nächsteFrage")
+"""@app.get("/nächsteFrage")
 def nextQuestion():
     logger.info('Nächste Frage wird ausgewählt.')
     app.state.chatbot.statistic['richtig Prozent'] = app.state.chatbot.statistic['Fragen richtig'] / app.state.chatbot.statistic['Fragen Anzahl'] * 100
@@ -193,7 +193,27 @@ def nextQuestion():
     questions = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Thema'] == thema]['Frage']
     question = questions[randint(0,len(questions))]
     lastquestion = question
-    return question
+    return question"""
+
+#Versuch
+@app.get("/nächsteFrage")
+def nextQuestion():
+    try:
+        logger.info('Nächste Frage wird ausgewählt.')
+        app.state.chatbot.statistic['richtig Prozent'] = app.state.chatbot.statistic['Fragen richtig'] / app.state.chatbot.statistic['Fragen Anzahl'] * 100
+        thema = app.state.chatbot.statistic.loc[app.state.chatbot.statistic['richtig Prozent'].idxmin()]['Thema']
+        questions = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Thema'] == thema]['Frage']
+        
+        if questions.empty:
+            logger.error(f"No questions found for Thema: {thema}")
+            return {"error": "No questions available for the selected Thema."}
+        
+        question = questions.iloc[randint(0, len(questions) - 1)]
+        app.state.chatbot.lastquestion = question
+        return {"question": question}
+    except Exception as e:
+        logger.error(f"Error while selecting the next question: {e}")
+        return {"error": "An error occurred while selecting the next question."}
 
 # Statistik laden
 @app.get("/Statistik")

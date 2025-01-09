@@ -84,12 +84,12 @@ class CustomChatBot:
             "richtig Prozent" : [ 0, 0]
         }
 
-        self.statistic = pd.DataFrame(data = dt_st)
-        self.Fragen = pd.DataFrame(data = dt)
+        #self.statistic = pd.DataFrame(data = dt_st)
+        #self.Fragen = pd.DataFrame(data = dt)
 
 
-        #self.statistic = pd.DataFrame(columns = ['Thema', 'Fragen Anzahl', 'Fragen richtig', 'richtig Prozent'])
-        #self.Fragen = pd.DataFrame(columns = ['Frage','Thema','Chunk'])
+        self.statistic = pd.DataFrame(columns = ['Thema', 'Fragen Anzahl', 'Fragen richtig', 'richtig Prozent'])
+        self.Fragen = pd.DataFrame(columns = ['Frage','Thema','Chunk'])
 
     def _initialize_chroma_client(self) -> ClientAPI:
         """
@@ -373,18 +373,19 @@ class CustomChatBot:
         
 
     def fragen_erstellen(self):
-        logger.info('erstelle Fragen')
+        logger.info('erstelle Fragen ...')
 
         collection =self.client.get_collection(self.get_current_collection())
         docs = collection.get()["documents"] or[]
         i = 0
+        
         for doc in docs:
             question = self.question_generation_chain(doc)
             output  = self.pattern_match(question)
             if output != None:
                 self.Fragen[i] = {'Frage': output[0],'Thema':output[1] ,'Chunk':doc}
         
-        logger.info(f'{i+1} Fragen erstellt')
+        logger.info(f'{i+1} Fragen erstellt.')
         i = 0
         
         for thema in self.Fragen['Thema'].unique():
@@ -415,9 +416,11 @@ class CustomChatBot:
         collection =self.client.get_collection(self.get_current_collection())
         docs = collection.get()["documents"] or[]
         zusammenfassungEinzel = ""
+        
         for doc in docs:
             zusammenfassungEinzel += '\n' + self.zusammenfassung_chain(doc)
         
         logger.info("Einzel Zusammenfassungen erstellt")
         zusammenfassungGesamt = self.zusammenfassung_chain(zusammenfassungEinzel)
+        
         return zusammenfassungGesamt
