@@ -182,15 +182,15 @@ def überprüfeAntwort(antwort:str):
     else:
         return "unerwartete Antwort"
 
-lastquestion = ""
+lastquestion = " "
 
 # Nächste Frage stellen
 @app.get("/nächsteFrage")
 def nextQuestion():
-    logger.info('nächste Frage wird ausgewählt')
-    app.state.chatbot.statistic['richtig Prozent'] = app.state.chatbot.statistic['Frage richtig']/app.state.chatbot.statistic['Frage Anzahl']*100
-    thema = app.state.chatbot.statistic[app.state.chatbot.statistic['richtig Prozent'].idxmin()]['thema']
-    questions = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Thema']==thema]['Frage']
+    logger.info('Nächste Frage wird ausgewählt.')
+    app.state.chatbot.statistic['richtig Prozent'] = app.state.chatbot.statistic['Fragen richtig'] / app.state.chatbot.statistic['Fragen Anzahl'] * 100
+    thema = app.state.chatbot.statistic.loc[app.state.chatbot.statistic['richtig Prozent'].idxmin()]['Thema']
+    questions = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Thema'] == thema]['Frage']
     question = questions[randint(0,len(questions))]
     lastquestion = question
     return question

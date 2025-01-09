@@ -63,8 +63,33 @@ class CustomChatBot:
 
         # Set up the retrieval-augmented generation (RAG) pipeline
         self.qa_rag_chain = self._initialize_qa_rag_chain()
-        self.statistic = pd.DataFrame(columns=['Thema','Fragen Anzahl','Fragen richtig','richtig Prozent'])
-        self.Fragen = pd.DataFrame(columns=['Frage','Thema','Chunk'])
+
+        # Funktionstest
+        dt = {
+            "Frage" : ["Wie lauten die fünf Akronyme von SMART?", 
+                       "Wofür steht das S in SMARTe Ziele?", 
+                       "Welche SI-Basiseinheiten gibt es?"],
+            "Thema" : ["SMARTe Ziele", 
+                       "SMARTe Ziele", 
+                       "SI-Basiseinheiten"],
+            "Chunk" : ["Die fünf Akronyme von SMART lauten: Spezifisch, Messbar, Attraktiv oder Erreichbar, Relevant, Terminiert oder Zeitgebunden.", 
+                       "Das S in SMARTe Ziele steht für Spezifisch.", 
+                       "Die SI-Basiseinheiten lauten: Meter oder m, Kilogramm oder kg, Sekunde oder s, Ampere oder A, Kelvin oder K, Mol oder mol und Candela oder cd."]
+        }
+
+        dt_st = {
+            "Thema" : ["SMARTe Ziele", "SI-Basiseinheiten"], 
+            "Fragen Anzahl" : [ 0, 0],
+            "Fragen richtig" : [ 0, 0],
+            "richtig Prozent" : [ 0, 0]
+        }
+
+        self.statistic = pd.DataFrame(data = dt_st)
+        self.Fragen = pd.DataFrame(data = dt)
+
+
+        #self.statistic = pd.DataFrame(columns = ['Thema', 'Fragen Anzahl', 'Fragen richtig', 'richtig Prozent'])
+        #self.Fragen = pd.DataFrame(columns = ['Frage','Thema','Chunk'])
 
     def _initialize_chroma_client(self) -> ClientAPI:
         """
@@ -215,6 +240,7 @@ class CustomChatBot:
         def clean_text(text):
             # Remove surrogate pairs
             text = re.sub(r'[\ud800-\udfff]', '', text)
+            
             # Optionally remove non-ASCII characters (depends on your use case)
             text = re.sub(r'[^\x00-\x7F]+', '', text)
             return text
@@ -336,6 +362,16 @@ class CustomChatBot:
         )
         return awnser_chain.invoke({"question":frage, "awnser":antwort, "Kontext":chunk})
     
+    def pattern_match(self, output:str):
+        pattern = r"Frage: (.*)\nThema: (.*)"
+        match = re.match(pattern,output)
+        
+        if match:
+            frage = match.group(1)
+            thema = match.group(2)
+            return (frage ,thema)
+        
+
     def fragen_erstellen(self):
         logger.info('erstelle Fragen')
 
@@ -344,13 +380,16 @@ class CustomChatBot:
         i = 0
         for doc in docs:
             question = self.question_generation_chain(doc)
-            question.split('Thema:')
-            self.Fragen[i] = {'Frage':question[0],'Thema':question[1],'Chunk':doc}
+            output  = self.pattern_match(question)
+            if output != None:
+                self.Fragen[i] = {'Frage': output[0],'Thema':output[1] ,'Chunk':doc}
+        
         logger.info(f'{i+1} Fragen erstellt')
         i = 0
+        
         for thema in self.Fragen['Thema'].unique():
 
-            self.statistic[i] = {'Thema':thema,'Frage Anzahl':0, 'Frage richtig':0, 'richtig Prozent':0}
+            self.statistic[i] = {'Thema':thema,'Fragen Anzahl':0, 'Fragen richtig':0, 'richtig Prozent':0}
             i += 1
     
     def zusammenfassung_chain(self,chunk):
