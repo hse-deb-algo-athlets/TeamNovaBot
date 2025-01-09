@@ -84,12 +84,12 @@ class CustomChatBot:
             "richtig Prozent" : [ 0, 0]
         }
 
-        #self.statistic = pd.DataFrame(data = dt_st)
-        #self.Fragen = pd.DataFrame(data = dt)
+        self.statistic = pd.DataFrame(data = dt_st)
+        self.Fragen = pd.DataFrame(data = dt)
 
 
-        self.statistic = pd.DataFrame(columns = ['Thema', 'Fragen Anzahl', 'Fragen richtig', 'richtig Prozent'])
-        self.Fragen = pd.DataFrame(columns = ['Frage','Thema','Chunk'])
+        #self.statistic = pd.DataFrame(columns = ['Thema', 'Fragen Anzahl', 'Fragen richtig', 'richtig Prozent'])
+        #self.Fragen = pd.DataFrame(columns = ['Frage','Thema','Chunk'])
 
     def _initialize_chroma_client(self) -> ClientAPI:
         """
