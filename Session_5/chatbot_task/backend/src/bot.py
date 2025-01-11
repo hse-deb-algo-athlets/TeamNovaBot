@@ -322,7 +322,7 @@ class CustomChatBot:
             logger.info("Stream complete")
    
     def question_generation_chain(self,chunk):
-        propmt_template="""
+        propmt_template = """
         Du bist ein Assistent um Fragen zu einem bestimmten Thema mithilfe eines gegebenen Textes zu erstellen. Gebe zusätzlich ein Allgemeines Thema an zu dem es gehört.
         Die Frage soll das vorgegebene Format haben. Benutzte keine weitere Formatierung.
         
@@ -372,19 +372,34 @@ class CustomChatBot:
             return (frage ,thema)
         
 
-    def fragen_erstellen(self):
+    def fragen_erstellen(self, collection_name = None):
+        
         logger.info('erstelle Fragen ...')
 
-        collection =self.client.get_collection(self.get_current_collection())
-        docs = collection.get()["documents"] or[]
+        questions_test = {}                                                                             # Versuch 11.01.25
+
+        curr_collection_name = collection_name or self.get_current_collection()                         # Versuch 11.01.25
+        collection = self.client.get_collection(name = curr_collection_name)
+        docs = collection.get()["documents"] or []
         i = 0
         
-        for doc in docs:
-            question = self.question_generation_chain(doc)
-            output  = self.pattern_match(question)
-            if output != None:
-                self.Fragen[i] = {'Frage': output[0],'Thema':output[1] ,'Chunk':doc}
-        
+        for i, doc in enumerate(docs):
+
+            logger.info(f"Generiere Frage {i}")
+
+            # 3 Versuche für die Generierung einer korrekt formatierten Frage
+            for k in range(3):                                                                          # Versuch 11.01.25
+                question = self.question_generation_chain(doc)
+                output  = self.pattern_match(question)
+            
+                if output != None:
+                    questions_test.update({i: output})                                                  # Versuch 11.01.25
+                    self.Fragen[i] = {'Frage': output[0],'Thema':output[1] ,'Chunk':doc}
+                    break
+                
+                else:
+                    print(f"Keine gültige Antwort für Frage {i} erhalten, versuche erneut... ({k})")    # Versuch 11.01.25
+
         logger.info(f'{i+1} Fragen erstellt.')
         i = 0
         
@@ -392,11 +407,13 @@ class CustomChatBot:
 
             self.statistic[i] = {'Thema':thema,'Fragen Anzahl':0, 'Fragen richtig':0, 'richtig Prozent':0}
             i += 1
+        
+        return questions_test                                                                           # Versuch 11.01.25
     
     def zusammenfassung_chain(self,chunk):
-        propmt_template="""
+        propmt_template = """
         Du bist ein Assistent um ein Text zum lernen zusammenzufasssen. 
-        Fasse die wichtigsten Informationen des Textes zusammen. Halte dich möglichst kurz.
+        Fasse die wichtigsten Informationen des Textes zusammen. Halte dich möglichst kurz und gebe maximal 5 Sätze aus.
         
         Hier ist der gegebene Text:
         {context}
@@ -412,15 +429,18 @@ class CustomChatBot:
         return question_chain.invoke({"context":chunk})
 
     def zusammenfassung_erstellen(self):
-        logger.info("erstelle Zusammenfassung")   
+
+        logger.info("erstelle Zusammenfassung ...") 
+
         collection =self.client.get_collection(self.get_current_collection())
         docs = collection.get()["documents"] or[]
+        
         zusammenfassungEinzel = ""
         
         for doc in docs:
             zusammenfassungEinzel += '\n' + self.zusammenfassung_chain(doc)
         
-        logger.info("Einzel Zusammenfassungen erstellt")
+        logger.info("Einzel Zusammenfassungen erstellt.")
         zusammenfassungGesamt = self.zusammenfassung_chain(zusammenfassungEinzel)
         
         return zusammenfassungGesamt

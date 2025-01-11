@@ -200,6 +200,7 @@ def nextQuestion():
 def nextQuestion():
     try:
         logger.info('Nächste Frage wird ausgewählt.')
+
         app.state.chatbot.statistic['richtig Prozent'] = app.state.chatbot.statistic['Fragen richtig'] / app.state.chatbot.statistic['Fragen Anzahl'] * 100
         thema = app.state.chatbot.statistic.loc[app.state.chatbot.statistic['richtig Prozent'].idxmin()]['Thema']
         questions = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Thema'] == thema]['Frage']
@@ -210,9 +211,12 @@ def nextQuestion():
         
         question = questions.iloc[randint(0, len(questions) - 1)]
         app.state.chatbot.lastquestion = question
+        
         return {"question": question}
+    
     except Exception as e:
         logger.error(f"Error while selecting the next question: {e}")
+        
         return {"error": "An error occurred while selecting the next question."}
 
 # Statistik laden
