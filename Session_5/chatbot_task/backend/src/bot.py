@@ -363,13 +363,21 @@ class CustomChatBot:
         return awnser_chain.invoke({"question":frage, "awnser":antwort, "Kontext":chunk})
     
     def pattern_match(self, output:str):
-        pattern = r"Frage: (.*)\nThema: (.*)"
-        match = re.match(pattern,output)
+        pattern = r"Frage: (.*)\n Thema: (.*)"
+        match = re.match(pattern, output, re.DOTALL)
         
         if match:
-            frage = match.group(1)
-            thema = match.group(2)
-            return (frage ,thema)
+           return {
+               "Frage" : match.group(1),
+               "Thema" : match.group(2)
+           } 
+
+        #if match:
+
+            #frage = match.group(1)
+            #thema = match.group(2)
+            
+            #return (frage ,thema)
         
 
     def fragen_erstellen(self, collection_name = None):
@@ -394,14 +402,11 @@ class CustomChatBot:
             
                 if output != None:
                     questions_test.update({i: output})                                                  # Versuch 11.01.25
-                    self.Fragen[i] = {'Frage': output[0],'Thema':output[1] ,'Chunk':doc}
+                    # self.Fragen[i] = {'Frage': output[0], 'Thema':output[1], 'Chunk':doc}
                     break
                 
-                else:
-                    print(f"Keine gültige Antwort für Frage {i} erhalten, versuche erneut... ({k})")    # Versuch 11.01.25
-
         logger.info(f'{i+1} Fragen erstellt.')
-        i = 0
+        i += 1
         
         for thema in self.Fragen['Thema'].unique():
 

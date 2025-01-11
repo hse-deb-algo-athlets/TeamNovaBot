@@ -152,16 +152,48 @@ def check_antworten(answer):
         logger.error(f"Fehler bei Antwort check. {e}")
 
 # Funktion Generierte Fragen Speichern für Abfrage
-def questions():
+def questions_gen():
     try:
         url = base_url + "nächsteFrage"
         frage = requests.get(url)
         frage.raise_for_status()
-        return frage
+        
+        data = frage.json()
+        if isinstance(data, str):
+            data = json.loads(data)
+        
+        return data
     
     except Exception as e:
         gr.Warning(f"Fehler bei der Fragenstellung: {e}")
         logger.error(f"Fehler bei der Fragenstellung: {e}")
+        return {}
+
+# Versuch Frage stellen
+def show_questions(questions: dict):
+    
+    if not questions:
+        return("Alle Fragen beantwortet!", " - ", " - ")
+    else:
+        first_key = list(questions.keys())[0]
+        current_question = questions[first_key]
+
+        frage = current_question["Frage"]
+        thema = current_question["Thema"]
+
+        return frage, thema
+# Versuch nächste Frage
+def next_questions(questions: dict) -> dict:
+    if not questions:
+        return {}
+    else:
+        first_key = list(questions.keys())[0]
+        del questions[first_key]
+        return questions
+# Versuch 
+def hqg():
+    data = questions_gen()
+    return data
 
 # Funktion Löschen der Collection
 def delete_collection(selected_collection:str):
@@ -216,7 +248,12 @@ with gr.Blocks() as demo:
 
     # State um Collections zu speichern, bei Änderung wird Verwaltung neu gerendert
     collections_state = gr.State(collections) 
+    
     logger.info(f"Collections: {collections}, collection state {collections_state}")
+    questions = gr.State({})
+
+    stats = gr.State(pd.DataFrame(
+        {"Bewertung": ["Korrekt", "Falsch"], "Anzahl": [0, 0]}))
 
     with gr.Row():      
         with gr.Column(scale = 4):
@@ -278,12 +315,18 @@ with gr.Blocks() as demo:
                                                 )
                 
                 with gr.Row():
-                    butto_generait = gr.Button("Fragen generieren")
+                    # Button zum Fragen generieren
+                    button_generate = gr.Button("Fragen generieren")
+
+                    # Button zum Fragen duchgehen
                     button_new = gr.Button("Frage stellen")
                     
-                    # Button klicken
-                    butto_generait.click(fragen_generieren, outputs = [chat_fenster])
-                    button_new.click(questions, outputs = [chat_fenster])
+                    # Button klicken zum generieren
+                    button_generate.click(fragen_generieren, outputs = questions)
+
+                    button_new.click(hqg, inputs = questions, outputs = chat_fenster)
+
+                    questions.change(show_questions, inputs = questions, outputs = [chat_fenster.chatbot, chat_fenster.textbox])
 
         # Statistikmodus
             with gr.Tab("Statistik"): 
