@@ -159,8 +159,9 @@ if __name__ == "__main__":
 # Fragen generieren
 @app.get("/Fragen")
 def getFrage():
-    app.state.chatbot.fragen_erstellen()
-    return app.state.chatbot.Fragen
+    fragen = app.state.chatbot.fragen_erstellen()
+    return fragen
+    # return app.state.chatbot.Fragen
 
 #Antworten korregieren
 @app.get("/Antwort")

@@ -363,7 +363,7 @@ class CustomChatBot:
         return awnser_chain.invoke({"question":frage, "awnser":antwort, "Kontext":chunk})
     
     def pattern_match(self, output:str):
-        pattern = r"Frage: (.*)\n Thema: (.*)"
+        pattern = r"Frage:\s*(.*?)\s*Thema:\s*(.*)"
         match = re.match(pattern, output, re.DOTALL)
         
         if match:
@@ -398,6 +398,7 @@ class CustomChatBot:
             # 3 Versuche für die Generierung einer korrekt formatierten Frage
             for k in range(3):                                                                          # Versuch 11.01.25
                 question = self.question_generation_chain(doc)
+                logger.info(question)
                 output  = self.pattern_match(question)
             
                 if output != None:
