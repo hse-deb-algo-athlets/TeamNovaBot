@@ -34,6 +34,7 @@ def upload_pdf(path: str):
         bib = get_collections()
         gr.Info(response.json()['message'])
         return  update_dropdown(), gr.List(label = "Die hochgeladenen Dateien sind: ", value = bib)
+    
     else:
         gr.Warning(response.json()['message'])
 
@@ -129,10 +130,13 @@ def statistik() -> pd.DataFrame:
 # Funktion Fragen generieren
 def fragen_generieren():
     try:
+        gr.Info("Fragen werden generiert...")
+
         url = base_url + "Fragen"
         antwort = requests.get(url)
         antwort.raise_for_status()
-        return "Fragen wurden generiert."
+
+        return logger.info("Fragen wurden generiert.")      # Passt das so?
     
     except Exception as e:
         gr.Warning(f"Fehler bei der Generierung von Fragen: {e}")
@@ -265,6 +269,7 @@ with gr.Blocks() as demo:
                                       interactive = True,
                                       min_width = 50
                                      )
+            
             upload_button = gr.UploadButton("Datei hinzufügen", file_types = [".pdf"], file_count = "single")
             
             upload_button.upload(upload_pdf, inputs = upload_button, outputs = [auswahl_PDF, collections_state])
@@ -319,14 +324,14 @@ with gr.Blocks() as demo:
                     button_generate = gr.Button("Fragen generieren")
 
                     # Button zum Fragen duchgehen
-                    button_new = gr.Button("Frage stellen")
+                    fragen_stellen = gr.Button("Frage stellen")
                     
                     # Button klicken zum generieren
-                    button_generate.click(fragen_generieren, outputs = questions)
+                    button_generate.click(fragen_generieren, outputs = [chat_fenster.chatbot, questions])
 
-                    button_new.click(hqg, inputs = questions, outputs = chat_fenster)
+                    fragen_stellen.click(hqg, inputs = questions, outputs = chat_fenster)
 
-                    questions.change(show_questions, inputs = questions, outputs = [chat_fenster.chatbot, chat_fenster.textbox])
+                    #questions.change(show_questions, inputs = questions, outputs = [chat_fenster.chatbot, chat_fenster.textbox])
 
         # Statistikmodus
             with gr.Tab("Statistik"): 
