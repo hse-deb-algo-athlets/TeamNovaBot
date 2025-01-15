@@ -166,6 +166,7 @@ def getFrage():
 #Antworten korregieren
 @app.get("/Antwort")
 def überprüfeAntwort(antwort:str):
+    
     chunk = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Frage'] == lastquestion]['Chunk']
     thema = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Frage'] == lastquestion]['Thema']
     überprüfung = app.state.chatbot.antwort_überprüfen(lastquestion, antwort, chunk)

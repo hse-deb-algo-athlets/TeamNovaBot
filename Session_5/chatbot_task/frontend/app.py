@@ -257,25 +257,24 @@ def update_dropdown(selected_collection = None):
     
     return gr.Dropdown(choices = new_choices, value = selected_value)
 
-# Funktion Zusammenfassung generieren
+# Funktion Zusammenfassung generieren bekommen einen String
 def zusammenfassung():
     try:
+        gr.Info("Zusammenfassung wird erstellt.")
         url = base_url + "Zusammenfassung"
         zm = requests.get(url)
         zm.raise_for_status()
-        return zm
+        logger.info(zm.json())
+        
+        zm_message = [["Bitte erstelle mir eine Zusammenfassung.", "Zusammenfassung wird erstellt."]]
+        return zm_message, zm.json()
     
     except Exception as e:
         gr.Warning(f"Fehler bei Zusammenfassung. {e}")
         logger.error(f"Fehler bei Zusammenfassung. {e}")
 
-def uebergabe_zm():
 
-    zm_output = [["Erstelle mir eine Zusammenfassung.", "Zusammenfassung wurde erstellt."]]
-    return zm_output
-
-
-# ---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------ä#
 with gr.Blocks() as demo:
     collections = get_collections()
 
@@ -284,6 +283,8 @@ with gr.Blocks() as demo:
     
     logger.info(f"Collections: {collections}, collection state {collections_state}")
     questions = gr.State({})
+
+    zusammengefasst = gr.State([])
 
     stats = gr.State(pd.DataFrame(
         {"Bewertung": ["Korrekt", "Falsch"], "Anzahl": [0, 0]}))
@@ -326,7 +327,7 @@ with gr.Blocks() as demo:
                                     )
                     zm = gr.Button("Zusammenfassung erstellen")
                     # out = gr.Textbox(label = "Ausgabe:", min_width = 150)
-                    zm.click(fn = uebergabe_zm, outputs = [out.chatbot, out])
+                    zm.click(zusammenfassung, outputs = [out.chatbot, zusammengefasst])
 
         # Liste der hochgeladenen PDF Dateien
             """
@@ -340,7 +341,7 @@ with gr.Blocks() as demo:
             with gr.Tab("Karteikarten-Lernen"): 
                 chat_fenster = gr.ChatInterface(
                                                     fn = chat,
-                                                    chatbot = gr.Chatbot(height = 800),  # Adjusted height for better usability
+                                                    chatbot = gr.Chatbot(height = 600),  # Adjusted height for better usability
                                                     retry_btn = None,
                                                     undo_btn = None,
                                                     submit_btn = "Check",
