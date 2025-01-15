@@ -7,7 +7,7 @@ import uvicorn
 
 import logging
 from contextlib import asynccontextmanager
-
+import pandas as pd
 import traceback
 import os
 
@@ -21,6 +21,27 @@ INDEX_DATA = False
 # Set up logger
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
+
+dt = {
+            "Frage" : ["Wie lauten die fünf Akronyme von SMART?", 
+                       "Wofür steht das S in SMARTe Ziele?", 
+                       "Welche SI-Basiseinheiten gibt es?"],
+            "Thema" : ["SMARTe Ziele", 
+                       "SMARTe Ziele", 
+                       "SI-Basiseinheiten"],
+            "Chunk" : ["Die fünf Akronyme von SMART lauten: Spezifisch, Messbar, Attraktiv oder Erreichbar, Relevant, Terminiert oder Zeitgebunden.", 
+                       "Das S in SMARTe Ziele steht für Spezifisch.", 
+                       "Die SI-Basiseinheiten lauten: Meter oder m, Kilogramm oder kg, Sekunde oder s, Ampere oder A, Kelvin oder K, Mol oder mol und Candela oder cd."]
+        }
+dt_st = {
+            "Thema" : ["SMARTe Ziele", "SI-Basiseinheiten"], 
+            "Fragen Anzahl" : [ 0, 0],
+            "Fragen richtig" : [ 0, 0],
+            "richtig Prozent" : [ 0, 0]
+        }
+question = pd.DataFrame(data=dt)
+statistik = pd.DataFrame(data=dt_st)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -156,35 +177,50 @@ if __name__ == "__main__":
 
 # SIMON: ==================================================================================
 
+def statistik_aktualisieren(row):
+    if row['Fragen Anzahl'] != 0:
+        return row['Fragen richtig'] / row['Fragen Anzahl'] * 100
+    else:
+        return 0
+
 # Fragen generieren
 @app.get("/Fragen")
 def getFrage():
     fragen = app.state.chatbot.fragen_erstellen()
+    questions = pd.DataFrame(fragen)
+
+    i = 0
+    for thema in question['Thema'].unique():
+        statistik[i] = {'Thema':thema,'Fragen Anzahl':0, 'Fragen richtig':0, 'richtig Prozent':0}
+        i += 1
     return fragen
-    # return app.state.chatbot.Fragen
 
 #Antworten korregieren
 @app.get("/Antwort")
-def überprüfeAntwort(antwort:str):
-    
-    chunk = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Frage'] == lastquestion]['Chunk']
-    thema = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Frage'] == lastquestion]['Thema']
-    überprüfung = app.state.chatbot.antwort_überprüfen(lastquestion, antwort, chunk)
-    überprüfung = überprüfung.lower()
-    
-    if überprüfung == "richtig":
-        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] += 1 
-        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage richtig'] += 1 
+def überprüfeAntwort(frage , antwort):
+
+    thema = question[question['Frage']==frage]['Thema'].values[0]
+    überprüfung = app.state.chatbot.antwort_überprüfen(frage, antwort)
+    überprüfung_lower = überprüfung.lower()
+    logger.info(f"Ollama Antwort: {überprüfung}")
+    logger.info(f"Thema: {thema}")
+    if  "richtig" in überprüfung_lower:
+        logger.info(f"Fragen Anzahl: {statistik['Fragen Anzahl'].dtype}, Fragen richtig: {statistik['Fragen richtig'].dtype}")
+        statistik.loc[statistik['Thema']==thema, 'Fragen Anzahl'] += 1
+        statistik.loc[statistik['Thema']==thema, 'Fragen richtig'] += 1 
+        statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis=1)
         return "korrekte Antwort"
     
-    elif überprüfung == "falsch":
-        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] += 1 
-        return "falsche Antwort"
+    elif "falsch" in überprüfung_lower:
+        statistik[statistik['Thema'] == thema]['Fragen Anzahl'] +=1 
+        statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis=1)
+        return überprüfung
     
     else:
-        return "unerwartete Antwort"
 
-lastquestion = " "
+        return f"unerwartete Antwort : {überprüfung}"
+
+lastquestion = ""
 
 # Nächste Frage stellen
 """@app.get("/nächsteFrage")
@@ -202,21 +238,18 @@ def nextQuestion():
 def nextQuestion():
     try:
         logger.info('Frage wird ausgewählt.')
-
-        app.state.chatbot.statistic['richtig Prozent'] = app.state.chatbot.statistic['Fragen richtig'] / app.state.chatbot.statistic['Fragen Anzahl'] * 100
-        
-        thema = app.state.chatbot.statistic.loc[app.state.chatbot.statistic['richtig Prozent'].idxmin()]['Thema']
-        questions = app.state.chatbot.Fragen[app.state.chatbot.Fragen['Thema'] == thema]['Frage']
+        thema = statistik.loc[statistik['richtig Prozent'].idxmin(),'Thema']
+        questions = question[question['Thema'] == thema]['Frage']
         
         if questions.empty:
             
             logger.error(f"Es wurden keine Fragen für das Thema {thema} gefunden.")
             return {"error": "Keine Fragen zum ausgewählten Thema vorhanden."}
         
-        question = questions.iloc[randint(0, len(questions) - 1)]
-        app.state.chatbot.lastquestion = question
+        frage = questions.iloc[randint(0, len(questions) - 1)]
+        lastquestion = frage
         
-        return {"question": question}
+        return {"question": frage}
     
     except Exception as e:
         logger.error(f"Fehler beim Auswählen der nächsten Frage: {e}")
@@ -226,7 +259,7 @@ def nextQuestion():
 # Statistik laden
 @app.get("/Statistik")
 def getStatistik():
-    return app.state.chatbot.statistic.to_json()
+    return statistik.to_json()
 
 #Zusammenfassung erstellen
 @app.get("/Zusammenfassung")

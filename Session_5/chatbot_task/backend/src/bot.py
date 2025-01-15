@@ -343,18 +343,22 @@ class CustomChatBot:
         )
         return question_chain.invoke({"context":chunk})
    
-    def antwort_überprüfen(self,frage,antwort,chunk):
-        
+    def antwort_überprüfen(self,frage,antwort):
         propmt_template = """
         Du bist ein Assistent um Antworten auf Fragen zu überprüfen und anhand des context zu bewerten.
-        Nimm die gegebene Frage und überprüfe ob die Antwort dazu passt.
-        Antworte nur mit richtig oder falsch
-        
-        Frage: {question}s
+        Nimm die gegebene Frage und überprüfe ob die Antwort darauf richtig ist.
+        Bewerte mit \"richtig\" oder \"falsch\"
+        falls die Antwort falsch ist gib zusätzlich eine erklärung wie die richtige Antwort aussieht.
+        Frage: {question}
         Antwort: {awnser}
-        Kontext: {Kontext}
+        
+        für deine Antwort musst du dieses Format verwenden:
+        [dene Bewertung]
+        Erklärung: [deine Erklärung hier]
         """
         prompt = ChatPromptTemplate.from_template(propmt_template)
+        query_embedding = self.embedding_function.embed_query(frage)
+        doc = self.vector_db.similarity_search_by_vector(query_embedding,k=1)
 
         awnser_chain = (
             {"question" : RunnablePassthrough(), "awnser":RunnablePassthrough(), "Kontext":RunnablePassthrough()}
@@ -362,7 +366,8 @@ class CustomChatBot:
             | self.llm
             | StrOutputParser()
         )
-        return awnser_chain.invoke({"question":frage, "awnser":antwort, "Kontext":chunk})
+        
+        return awnser_chain.invoke(input={"question":frage, "awnser":antwort, "Kontext":doc})
     
     def pattern_match(self, output:str):
         pattern = r"Frage:\s*(.*?)\s*Thema:\s*(.*)"
@@ -394,7 +399,7 @@ class CustomChatBot:
         
         for i, doc in enumerate(docs):
 
-            logger.info(f"Generiere Frage {i}")
+            logger.info(f"Generiere Frage {i+1}")
 
             # 3 Versuche für die Generierung einer korrekt formatierten Frage
             for k in range(3):                                                                          # Versuch 11.01.25
@@ -408,7 +413,7 @@ class CustomChatBot:
                     break
                 
         logger.info(f'{i+1} Fragen erstellt.')
-        i += 1
+        i = 0
         
         for thema in self.Fragen['Thema'].unique():
 
@@ -434,6 +439,8 @@ class CustomChatBot:
             | StrOutputParser()
         )
         return question_chain.invoke({"context":chunk})
+    
+        
 
     def zusammenfassung_erstellen(self):
 

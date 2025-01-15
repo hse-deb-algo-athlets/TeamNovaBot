@@ -9,6 +9,7 @@ import json
 # Set up logging
 logging.basicConfig(level = logging.INFO)
 logger = logging.getLogger(__name__)
+lastquestion =""
 
 base_url = "http://backend:5001/"
 
@@ -161,7 +162,7 @@ def fragen_generieren():
 def check_antworten(answer):
     try:
         url = base_url + "Antwort"
-        antwort = requests.post(url, answer)
+        antwort = requests.post(url,{"Frage":lastquestion,"Antwort":answer})
         antwort.raise_for_status()
         
         return antwort
