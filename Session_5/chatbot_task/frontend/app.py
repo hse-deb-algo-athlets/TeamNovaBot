@@ -9,6 +9,7 @@ import json
 # Set up logging
 logging.basicConfig(level = logging.INFO)
 logger = logging.getLogger(__name__)
+lastquestion =""
 
 base_url = "http://backend:5001/"
 
@@ -135,7 +136,6 @@ def fragen_generieren():
         url = base_url + "Fragen"
         antwort = requests.get(url)
         antwort.raise_for_status()
-
         return logger.info("Fragen wurden generiert.")      # Passt das so?
     
     except Exception as e:
@@ -146,7 +146,7 @@ def fragen_generieren():
 def check_antworten(answer):
     try:
         url = base_url + "Antwort"
-        antwort = requests.post(url, answer)
+        antwort = requests.post(url,{"Frage":lastquestion,"Antwort":answer})
         antwort.raise_for_status()
         
         return antwort
@@ -186,12 +186,14 @@ def show_questions(questions: dict):
         thema = current_question["Thema"]
 
         return frage, thema
+    
 # Versuch nächste Frage
 def next_questions(questions: dict) -> dict:
     if not questions:
         return {}
     else:
         first_key = list(questions.keys())[0]
+        lastquestion = questions[first_key]
         del questions[first_key]
         return questions
 # Versuch 
