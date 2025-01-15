@@ -128,6 +128,17 @@ def statistik() -> pd.DataFrame:
         logger.error(f"Fehler beim Statistik erstellen aufgetreten.{e}")
         return pd.DataFrame()
 
+#Versuch
+def update_stat_chart(stats):
+    return gr.BarPlot(
+                        value = stats,
+                        x = "Thema",
+                        y = "richtig Prozent",
+                        color = "Bewertung",
+                        title = "Statistik",
+                        color_map = {"Korrekt": "#75ff33", "Falsch": "#FF5733"}
+                    )
+
 # Funktion Fragen generieren
 def fragen_generieren():
     try:
@@ -136,11 +147,16 @@ def fragen_generieren():
         url = base_url + "Fragen"
         antwort = requests.get(url)
         antwort.raise_for_status()
-        return logger.info("Fragen wurden generiert.")      # Passt das so?
+        logger.info(antwort.json())
+        count = len(antwort.json().keys())
+
+        msgtupel = [["Erstell mir bitte Fragen zu meinem Skript.", f"Fragen erstellen ... {count}"]]
+        return msgtupel, antwort.json()
     
     except Exception as e:
         gr.Warning(f"Fehler bei der Generierung von Fragen: {e}")
         logger.error(f"Fehler bei der Generierung von Fragen: {e}")
+        return "Fehler beim generieren von Fragen", {}
 
 # Antworten überprüfen
 def check_antworten(answer):
@@ -186,20 +202,26 @@ def show_questions(questions: dict):
         thema = current_question["Thema"]
 
         return frage, thema
-    
-# Versuch nächste Frage
+# Versuch nächste Frage (, answer_correct: bool)
 def next_questions(questions: dict) -> dict:
     if not questions:
         return {}
     else:
         first_key = list(questions.keys())[0]
-        lastquestion = questions[first_key]
-        del questions[first_key]
+
+        if questions == answer_correct:
+            del questions[first_key]
+        else:
+            questions[first_key] = questions.pop(first_key)
         return questions
 # Versuch 
-def hqg():
-    data = questions_gen()
-    return data
+def hqg(questions: dict):
+    first_key = list(questions.keys())[0]
+    first_question = questions[first_key]["Frage"]
+    first_question_thema = questions[first_key]["Thema"]
+
+    outtupel = [["Stell mir eine Frage.", f"Das Thema: {first_question_thema} \nDie Frage lautet: {first_question}"]]
+    return outtupel
 
 # Funktion Löschen der Collection
 def delete_collection(selected_collection:str):
@@ -247,6 +269,12 @@ def zusammenfassung():
     except Exception as e:
         gr.Warning(f"Fehler bei Zusammenfassung. {e}")
         logger.error(f"Fehler bei Zusammenfassung. {e}")
+
+def uebergabe_zm():
+
+    zm_output = [["Erstelle mir eine Zusammenfassung.", "Zusammenfassung wurde erstellt."]]
+    return zm_output
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 with gr.Blocks() as demo:
@@ -299,7 +327,7 @@ with gr.Blocks() as demo:
                                     )
                     zm = gr.Button("Zusammenfassung erstellen")
                     # out = gr.Textbox(label = "Ausgabe:", min_width = 150)
-                    zm.click(fn = zusammenfassung, outputs = out)
+                    zm.click(fn = uebergabe_zm, outputs = [out.chatbot, out])
 
         # Liste der hochgeladenen PDF Dateien
             """
@@ -313,25 +341,32 @@ with gr.Blocks() as demo:
             with gr.Tab("Karteikarten-Lernen"): 
                 chat_fenster = gr.ChatInterface(
                                                     fn = chat,
-                                                    chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
+                                                    chatbot = gr.Chatbot(height = 800),  # Adjusted height for better usability
                                                     retry_btn = None,
                                                     undo_btn = None,
                                                     submit_btn = "Check",
                                                     textbox = gr.Textbox(placeholder = "Wie lautet deine Antwort?", container = False, scale = 3),
                                                     theme = "soft",
                                                 )
-                
+
                 with gr.Row():
                     # Button zum Fragen generieren
                     button_generate = gr.Button("Fragen generieren")
 
                     # Button zum Fragen duchgehen
                     fragen_stellen = gr.Button("Frage stellen")
+
+                    # Test
+                    b_correct = gr.Button("Richtig")
+                    b_falsch = gr.Button("Falsch")
+
+                    b_correct.click(next_questions, inputs = [questions, gr.State(True)], outputs = questions)
+                    b_falsch.click(next_questions, inputs = [questions, gr.State(False)], outputs = questions)
                     
                     # Button klicken zum generieren
                     button_generate.click(fragen_generieren, outputs = [chat_fenster.chatbot, questions])
 
-                    fragen_stellen.click(hqg, inputs = questions, outputs = chat_fenster)
+                    fragen_stellen.click(hqg, inputs = questions, outputs = chat_fenster.chatbot)
 
                     #questions.change(show_questions, inputs = questions, outputs = [chat_fenster.chatbot, chat_fenster.textbox])
 
@@ -339,15 +374,16 @@ with gr.Blocks() as demo:
             with gr.Tab("Statistik"): 
                 with gr.Row():
                     st = gr.BarPlot(
-                                        value = statistik(),
+                                        value = stats.value,
                                         x = "Thema",
                                         y = "richtig Prozent",
                                         x_title = "Thema",
                                         y_title = "Prozent",
                                         color = "Bewertung",
+                                        title = "Statistik",
                                         color_map = {"Korrekt": "#75ff33", "Falsch": "#FF5733"}
                                     )
-                gr.Button("Statistik laden").click(statistik, outputs = st)
+                #gr.Button("Statistik laden").click(statistik, outputs = st)
 
         # Verwaltungsmodus
             with gr.Tab("Verwaltung"):
