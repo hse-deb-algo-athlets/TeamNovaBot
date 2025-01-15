@@ -387,7 +387,7 @@ class CustomChatBot:
         
         logger.info('erstelle Fragen ...')
 
-        questions_test = {}                                                                             # Versuch 11.01.25
+        questions_test = []                                                                             # Versuch 11.01.25
 
         curr_collection_name = collection_name or self.get_current_collection()                         # Versuch 11.01.25
         collection = self.client.get_collection(name = curr_collection_name)
@@ -405,8 +405,8 @@ class CustomChatBot:
                 output  = self.pattern_match(question)
             
                 if output != None:
-                    questions_test.update({i: output})                                                  # Versuch 11.01.25
-                    # self.Fragen[i] = {'Frage': output[0], 'Thema':output[1], 'Chunk':doc}
+                    questions_test.append(output)                                                  # Versuch 11.01.25
+                    #self.Fragen[i] = {'Frage': output[0], 'Thema':output[1], 'Chunk':doc}
                     break
                 
         logger.info(f'{i+1} Fragen erstellt.')

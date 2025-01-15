@@ -149,7 +149,7 @@ def fragen_generieren():
         antwort = requests.get(url)
         antwort.raise_for_status()
         logger.info(antwort.json())
-        count = len(antwort.json().keys())
+        count = len(antwort.json())
 
         msgtupel = [["Erstell mir bitte Fragen zu meinem Skript.", f"Fragen erstellen ... {count}"]]
         return msgtupel, antwort.json()
@@ -165,7 +165,7 @@ def check_antworten(answer, history = []):
         logger.info("Antwort wird überprüft...")
         
         url = base_url + "Antwort"
-        antwort = requests.post(url, answer)
+        antwort = requests.post(url, json = {"key": answer})
         antwort.raise_for_status()
         
         return antwort
@@ -175,7 +175,7 @@ def check_antworten(answer, history = []):
         logger.error(f"Fehler bei Antwort check. {e}")
 
 # Funktion Generierte Fragen Speichern für Abfrage
-def questions_gen():
+def questions_gen(questions):                               ## MORGEN
     try:
         url = base_url + "nächsteFrage"
         frage = requests.get(url)
@@ -218,10 +218,10 @@ def next_questions(questions: dict) -> dict:
             questions[first_key] = questions.pop(first_key)
         return questions
 # Versuch 
-def hqg(questions: dict):
-    first_key = list(questions.keys())[0]
-    first_question = questions[first_key]["Frage"]
-    first_question_thema = questions[first_key]["Thema"]
+def hqg(questions):
+    #first_key = list(questions.keys())[0]
+    first_question = questions[0]["Frage"]
+    first_question_thema = questions[0]["Thema"]
 
     outtupel = [["Stell mir eine Frage.", f"Das Thema: {first_question_thema} \nDie Frage lautet: {first_question}"]]
     return outtupel
@@ -286,7 +286,7 @@ with gr.Blocks() as demo:
     collections_state = gr.State(collections) 
     
     logger.info(f"Collections: {collections}, collection state {collections_state}")
-    questions = gr.State({})
+    questions = gr.State()
 
     zusammengefasst = gr.State()
 
@@ -368,7 +368,7 @@ with gr.Blocks() as demo:
                     # Button klicken zum generieren
                     button_generate.click(fragen_generieren, outputs = [chat_fenster.chatbot, questions])
 
-                    fragen_stellen.click(hqg, inputs = questions, outputs = chat_fenster.chatbot)
+                    fragen_stellen.click(questions_gen, inputs = questions, outputs = chat_fenster.chatbot)
 
 
         # Statistikmodus

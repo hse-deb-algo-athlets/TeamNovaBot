@@ -10,10 +10,12 @@ from contextlib import asynccontextmanager
 import pandas as pd
 import traceback
 import os
-
+ 
 from src.bot import CustomChatBot
 from random import randint
 
+class Answer(BaseModel):
+    key: str
 
 #INDEX_DATA = bool(int(os.environ["INDEX_DATA"]))
 INDEX_DATA = False
@@ -39,8 +41,8 @@ dt_st = {
             "Fragen richtig" : [ 0, 0],
             "richtig Prozent" : [ 0, 0]
         }
-question = pd.DataFrame(data=dt)
-statistik = pd.DataFrame(data=dt_st)
+question = pd.DataFrame(data = dt)
+statistik = pd.DataFrame(data = dt_st)
 
 lastquestion = " "
 
@@ -188,7 +190,7 @@ def statistik_aktualisieren(row):
 @app.get("/Fragen")
 def getFrage():
     fragen = app.state.chatbot.fragen_erstellen()
-    questions = pd.DataFrame(fragen)
+    question = pd.DataFrame(fragen)
 
     i = 0
     for thema in question['Thema'].unique():
@@ -198,12 +200,14 @@ def getFrage():
 
 #Antworten korregieren
 @app.post("/Antwort")
-def überprüfeAntwort(antwort):
+def überprüfeAntwort(antwort: Answer):
 
     frage = lastquestion
+    logger.info(frage)
+    logger.info(question.head())
 
     thema = question[question['Frage'] == frage]['Thema'].values[0]
-    überprüfung = app.state.chatbot.antwort_überprüfen(frage, antwort)
+    überprüfung = app.state.chatbot.antwort_überprüfen(frage, antwort.key)
     überprüfung_lower = überprüfung.lower()
 
     logger.info(f"Ollama Antwort: {überprüfung}")
@@ -214,11 +218,13 @@ def überprüfeAntwort(antwort):
         statistik.loc[statistik['Thema'] == thema, 'Fragen Anzahl'] += 1
         statistik.loc[statistik['Thema'] == thema, 'Fragen richtig'] += 1 
         statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis = 1)
+        
         return "korrekte Antwort"
     
     elif "falsch" in überprüfung_lower:
         statistik[statistik['Thema'] == thema]['Fragen Anzahl'] += 1 
         statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis = 1)
+        
         return überprüfung
     
     else:
