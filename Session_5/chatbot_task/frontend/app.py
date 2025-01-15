@@ -107,6 +107,7 @@ async def chat(message: str, history = []):
     try:        
         # Stream chunks from WebSocket and append them incrementally
         bot_message = ""
+        
         async for chunk in websocket_chat(message):
             bot_message += str(chunk)  # Accumulate chunks
             yield bot_message  # Yield updated history incrementally for display
@@ -159,10 +160,12 @@ def fragen_generieren():
         return "Fehler beim generieren von Fragen", {}
 
 # Antworten überprüfen
-def check_antworten(answer):
+def check_antworten(answer, history = []):
     try:
+        logger.info("Antwort wird überprüft...")
+        
         url = base_url + "Antwort"
-        antwort = requests.post(url,{"Frage":lastquestion,"Antwort":answer})
+        antwort = requests.post(url, answer)
         antwort.raise_for_status()
         
         return antwort
@@ -285,7 +288,7 @@ with gr.Blocks() as demo:
     logger.info(f"Collections: {collections}, collection state {collections_state}")
     questions = gr.State({})
 
-    zusammengefasst = gr.State([])
+    zusammengefasst = gr.State()
 
     stats = gr.State(pd.DataFrame(
         {"Bewertung": ["Korrekt", "Falsch"], "Anzahl": [0, 0]}))
@@ -327,8 +330,13 @@ with gr.Blocks() as demo:
                                     examples = ["What is supervised learning?", "What is deep learning?", "What is a linear regression?"],
                                     )
                     zm = gr.Button("Zusammenfassung erstellen")
-                    # out = gr.Textbox(label = "Ausgabe:", min_width = 150)
+                    
                     zm.click(zusammenfassung, outputs = [out.chatbot, zusammengefasst])
+
+                    def back_zusammenfassung(zf: str):
+                        return [["Erstelle mir bitte eine Zusammenfassung.", zf]]
+
+                    zusammengefasst.change(back_zusammenfassung, inputs = zusammengefasst, outputs = out.chatbot)
 
         # Liste der hochgeladenen PDF Dateien
             """
@@ -341,7 +349,7 @@ with gr.Blocks() as demo:
         # Karteikartenmodus
             with gr.Tab("Karteikarten-Lernen"): 
                 chat_fenster = gr.ChatInterface(
-                                                    fn = chat,
+                                                    fn = check_antworten,
                                                     chatbot = gr.Chatbot(height = 600),  # Adjusted height for better usability
                                                     retry_btn = None,
                                                     undo_btn = None,
@@ -356,20 +364,12 @@ with gr.Blocks() as demo:
 
                     # Button zum Fragen duchgehen
                     fragen_stellen = gr.Button("Frage stellen")
-
-                    # Test
-                    b_correct = gr.Button("Richtig")
-                    b_falsch = gr.Button("Falsch")
-
-                    b_correct.click(next_questions, inputs = [questions, gr.State(True)], outputs = questions)
-                    b_falsch.click(next_questions, inputs = [questions, gr.State(False)], outputs = questions)
                     
                     # Button klicken zum generieren
                     button_generate.click(fragen_generieren, outputs = [chat_fenster.chatbot, questions])
 
                     fragen_stellen.click(hqg, inputs = questions, outputs = chat_fenster.chatbot)
 
-                    #questions.change(show_questions, inputs = questions, outputs = [chat_fenster.chatbot, chat_fenster.textbox])
 
         # Statistikmodus
             with gr.Tab("Statistik"): 
@@ -384,7 +384,7 @@ with gr.Blocks() as demo:
                                         title = "Statistik",
                                         color_map = {"Korrekt": "#75ff33", "Falsch": "#FF5733"}
                                     )
-                #gr.Button("Statistik laden").click(statistik, outputs = st)
+                gr.Button("Statistik laden").click(statistik, outputs = st)
 
         # Verwaltungsmodus
             with gr.Tab("Verwaltung"):

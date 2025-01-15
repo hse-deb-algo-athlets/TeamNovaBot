@@ -42,6 +42,7 @@ dt_st = {
 question = pd.DataFrame(data=dt)
 statistik = pd.DataFrame(data=dt_st)
 
+lastquestion = " "
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -196,31 +197,35 @@ def getFrage():
     return fragen
 
 #Antworten korregieren
-@app.get("/Antwort")
-def überprüfeAntwort(frage , antwort):
+@app.post("/Antwort")
+def überprüfeAntwort(antwort):
 
-    thema = question[question['Frage']==frage]['Thema'].values[0]
+    frage = lastquestion
+
+    thema = question[question['Frage'] == frage]['Thema'].values[0]
     überprüfung = app.state.chatbot.antwort_überprüfen(frage, antwort)
     überprüfung_lower = überprüfung.lower()
+
     logger.info(f"Ollama Antwort: {überprüfung}")
     logger.info(f"Thema: {thema}")
+
     if  "richtig" in überprüfung_lower:
         logger.info(f"Fragen Anzahl: {statistik['Fragen Anzahl'].dtype}, Fragen richtig: {statistik['Fragen richtig'].dtype}")
-        statistik.loc[statistik['Thema']==thema, 'Fragen Anzahl'] += 1
-        statistik.loc[statistik['Thema']==thema, 'Fragen richtig'] += 1 
-        statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis=1)
+        statistik.loc[statistik['Thema'] == thema, 'Fragen Anzahl'] += 1
+        statistik.loc[statistik['Thema'] == thema, 'Fragen richtig'] += 1 
+        statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis = 1)
         return "korrekte Antwort"
     
     elif "falsch" in überprüfung_lower:
-        statistik[statistik['Thema'] == thema]['Fragen Anzahl'] +=1 
-        statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis=1)
+        statistik[statistik['Thema'] == thema]['Fragen Anzahl'] += 1 
+        statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis = 1)
         return überprüfung
     
     else:
 
         return f"unerwartete Antwort : {überprüfung}"
 
-lastquestion = ""
+
 
 # Nächste Frage stellen
 """@app.get("/nächsteFrage")

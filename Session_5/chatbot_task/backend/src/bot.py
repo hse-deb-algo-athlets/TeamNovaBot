@@ -346,16 +346,20 @@ class CustomChatBot:
     def antwort_überprüfen(self,frage,antwort):
         propmt_template = """
         Du bist ein Assistent um Antworten auf Fragen zu überprüfen und anhand des context zu bewerten.
-        Nimm die gegebene Frage und überprüfe ob die Antwort darauf richtig ist.
-        Bewerte mit \"richtig\" oder \"falsch\"
-        falls die Antwort falsch ist gib zusätzlich eine erklärung wie die richtige Antwort aussieht.
+        Nimm die gegebene Frage und überprüfe, ob die Antwort darauf richtig ist.
+        Bewerte mit \"richtig\" oder \"falsch\".
+        Falls die Antwort falsch ist gib zusätzlich eine erklärung aus, wie die richtige Antwort aussieht. 
+        Fasse dich bitte kurz in maximal drei Sätzen.
+        
         Frage: {question}
         Antwort: {awnser}
-        
-        für deine Antwort musst du dieses Format verwenden:
-        [dene Bewertung]
+        Kontext: {Kontext}
+
+        Für deine Antwort musst du dieses Format verwenden:
+        [richtig oder falsch]
         Erklärung: [deine Erklärung hier]
         """
+
         prompt = ChatPromptTemplate.from_template(propmt_template)
         query_embedding = self.embedding_function.embed_query(frage)
         doc = self.vector_db.similarity_search_by_vector(query_embedding,k=1)
@@ -378,13 +382,6 @@ class CustomChatBot:
                "Frage" : match.group(1),
                "Thema" : match.group(2)
            } 
-
-        #if match:
-
-            #frage = match.group(1)
-            #thema = match.group(2)
-            
-            #return (frage ,thema)
 
     def fragen_erstellen(self, collection_name = None):
         
