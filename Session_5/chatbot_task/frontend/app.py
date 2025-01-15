@@ -127,6 +127,17 @@ def statistik() -> pd.DataFrame:
         logger.error(f"Fehler beim Statistik erstellen aufgetreten.{e}")
         return pd.DataFrame()
 
+#Versuch
+def update_stat_chart(stats):
+    return gr.BarPlot(
+                        value = stats,
+                        x = "Thema",
+                        y = "richtig Prozent",
+                        color = "Bewertung",
+                        title = "Statistik",
+                        color_map = {"Korrekt": "#75ff33", "Falsch": "#FF5733"}
+                    )
+
 # Funktion Fragen generieren
 def fragen_generieren():
     try:
@@ -190,8 +201,8 @@ def show_questions(questions: dict):
         thema = current_question["Thema"]
 
         return frage, thema
-# Versuch nächste Frage
-def next_questions(questions: dict, answer_correct: bool) -> dict:
+# Versuch nächste Frage (, answer_correct: bool)
+def next_questions(questions: dict) -> dict:
     if not questions:
         return {}
     else:
@@ -258,6 +269,12 @@ def zusammenfassung():
         gr.Warning(f"Fehler bei Zusammenfassung. {e}")
         logger.error(f"Fehler bei Zusammenfassung. {e}")
 
+def uebergabe_zm():
+
+    zm_output = [["Erstelle mir eine Zusammenfassung.", "Zusammenfassung wurde erstellt."]]
+    return zm_output
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 with gr.Blocks() as demo:
     collections = get_collections()
@@ -309,7 +326,7 @@ with gr.Blocks() as demo:
                                     )
                     zm = gr.Button("Zusammenfassung erstellen")
                     # out = gr.Textbox(label = "Ausgabe:", min_width = 150)
-                    zm.click(fn = zusammenfassung, outputs = out)
+                    zm.click(fn = uebergabe_zm, outputs = [out.chatbot, out])
 
         # Liste der hochgeladenen PDF Dateien
             """
@@ -323,7 +340,7 @@ with gr.Blocks() as demo:
             with gr.Tab("Karteikarten-Lernen"): 
                 chat_fenster = gr.ChatInterface(
                                                     fn = chat,
-                                                    chatbot = gr.Chatbot(height = 500),  # Adjusted height for better usability
+                                                    chatbot = gr.Chatbot(height = 800),  # Adjusted height for better usability
                                                     retry_btn = None,
                                                     undo_btn = None,
                                                     submit_btn = "Check",
@@ -356,15 +373,16 @@ with gr.Blocks() as demo:
             with gr.Tab("Statistik"): 
                 with gr.Row():
                     st = gr.BarPlot(
-                                        value = statistik(),
+                                        value = stats.value,
                                         x = "Thema",
                                         y = "richtig Prozent",
                                         x_title = "Thema",
                                         y_title = "Prozent",
                                         color = "Bewertung",
+                                        title = "Statistik",
                                         color_map = {"Korrekt": "#75ff33", "Falsch": "#FF5733"}
                                     )
-                gr.Button("Statistik laden").click(statistik, outputs = st)
+                #gr.Button("Statistik laden").click(statistik, outputs = st)
 
         # Verwaltungsmodus
             with gr.Tab("Verwaltung"):

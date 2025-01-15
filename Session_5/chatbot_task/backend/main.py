@@ -172,12 +172,12 @@ def überprüfeAntwort(antwort:str):
     überprüfung = überprüfung.lower()
     
     if überprüfung == "richtig":
-        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] +=1 
-        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage richtig'] +=1 
+        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] += 1 
+        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage richtig'] += 1 
         return "korrekte Antwort"
     
     elif überprüfung == "falsch":
-        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] +=1 
+        app.state.chatbot.statistic[app.state.chatbot.statistic['Thema'] == thema]['Frage Anzahl'] += 1 
         return "falsche Antwort"
     
     else:

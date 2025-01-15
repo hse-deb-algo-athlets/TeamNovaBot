@@ -344,10 +344,12 @@ class CustomChatBot:
         return question_chain.invoke({"context":chunk})
    
     def antwort_überprüfen(self,frage,antwort,chunk):
+        
         propmt_template = """
         Du bist ein Assistent um Antworten auf Fragen zu überprüfen und anhand des context zu bewerten.
         Nimm die gegebene Frage und überprüfe ob die Antwort dazu passt.
         Antworte nur mit richtig oder falsch
+        
         Frage: {question}s
         Antwort: {awnser}
         Kontext: {Kontext}
@@ -378,7 +380,6 @@ class CustomChatBot:
             #thema = match.group(2)
             
             #return (frage ,thema)
-        
 
     def fragen_erstellen(self, collection_name = None):
         
