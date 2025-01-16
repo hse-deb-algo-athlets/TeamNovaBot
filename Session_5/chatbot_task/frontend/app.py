@@ -185,11 +185,17 @@ def questions_gen(questions):
         data = frage.json()
         if isinstance(data, str):
             data = json.loads(data)
+<<<<<<< HEAD
 
         frage_test = data["question"]
         testtupel = [["Stelle mir bitte eine Frage.", frage_test]]
         return testtupel   
 
+=======
+        frage_test = data["question"]
+        return [["Stelle mir eine Frage",frage_test]]
+    
+>>>>>>> origin/MyPart
     except Exception as e:
         gr.Warning(f"Fehler bei der Fragenstellung: {e}")
         logger.error(f"Fehler bei der Fragenstellung: {e}")

@@ -24,27 +24,28 @@ INDEX_DATA = False
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
 
-dt = {
-            "Frage" : ["Wie lauten die fünf Akronyme von SMART?", 
-                       "Wofür steht das S in SMARTe Ziele?", 
-                       "Welche SI-Basiseinheiten gibt es?"],
-            "Thema" : ["SMARTe Ziele", 
-                       "SMARTe Ziele", 
-                       "SI-Basiseinheiten"],
-            "Chunk" : ["Die fünf Akronyme von SMART lauten: Spezifisch, Messbar, Attraktiv oder Erreichbar, Relevant, Terminiert oder Zeitgebunden.", 
-                       "Das S in SMARTe Ziele steht für Spezifisch.", 
-                       "Die SI-Basiseinheiten lauten: Meter oder m, Kilogramm oder kg, Sekunde oder s, Ampere oder A, Kelvin oder K, Mol oder mol und Candela oder cd."]
-        }
-dt_st = {
-            "Thema" : ["SMARTe Ziele", "SI-Basiseinheiten"], 
-            "Fragen Anzahl" : [ 0, 0],
-            "Fragen richtig" : [ 0, 0],
-            "richtig Prozent" : [ 0, 0]
-        }
-question = pd.DataFrame(data = dt)
-statistik = pd.DataFrame(data = dt_st)
+# dt = {
+#             "Frage" : ["Wie lauten die fünf Akronyme von SMART?", 
+#                        "Wofür steht das S in SMARTe Ziele?", 
+#                        "Welche SI-Basiseinheiten gibt es?"],
+#             "Thema" : ["SMARTe Ziele", 
+#                        "SMARTe Ziele", 
+#                        "SI-Basiseinheiten"],
+#             "Chunk" : ["Die fünf Akronyme von SMART lauten: Spezifisch, Messbar, Attraktiv oder Erreichbar, Relevant, Terminiert oder Zeitgebunden.", 
+#                        "Das S in SMARTe Ziele steht für Spezifisch.", 
+#                        "Die SI-Basiseinheiten lauten: Meter oder m, Kilogramm oder kg, Sekunde oder s, Ampere oder A, Kelvin oder K, Mol oder mol und Candela oder cd."]
+#         }
+# dt_st = {
+#             "Thema" : ["SMARTe Ziele", "SI-Basiseinheiten"], 
+#             "Fragen Anzahl" : [ 0, 0],
+#             "Fragen richtig" : [ 0, 0],
+#             "richtig Prozent" : [ 0, 0]
+#        }
+# question = pd.DataFrame(data = dt)
+# statistik = pd.DataFrame(data = dt_st)
 
-lastquestion = " "
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,6 +63,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app and configure CORS
 app = FastAPI(lifespan = lifespan)
+app.state.statistik = pd.DataFrame(columns = ['Thema', 'Fragen Anzahl', 'Fragen richtig', 'richtig Prozent'])
+app.state.question = pd.DataFrame(columns = ['Frage','Thema'])
 
 app.add_middleware(
     CORSMiddleware,
@@ -190,11 +193,12 @@ def statistik_aktualisieren(row):
 @app.get("/Fragen")
 def getFrage():
     fragen = app.state.chatbot.fragen_erstellen()
-    question = pd.DataFrame(fragen)
-
+    app.state.question = pd.DataFrame(fragen)
+    logger.info(fragen)
+    logger.info(app.state.question.head())
     i = 0
-    for thema in question['Thema'].unique():
-        statistik[i] = {'Thema':thema,'Fragen Anzahl':0, 'Fragen richtig':0, 'richtig Prozent':0}
+    for thema in app.state.question['Thema'].unique():
+        app.state.statistik.loc[i] = {'Thema':thema,'Fragen Anzahl':0, 'Fragen richtig':0, 'richtig Prozent':0}
         i += 1
     return fragen
 
@@ -202,11 +206,11 @@ def getFrage():
 @app.post("/Antwort")
 def überprüfeAntwort(antwort: Answer):
 
-    frage = lastquestion
+    frage = app.state.lastquestion
     logger.info(frage)
-    logger.info(question.head())
+    logger.info(app.state.question.head())
 
-    thema = question[question['Frage'] == frage]['Thema'].values[0]
+    thema = app.state.question[app.state.question['Frage'] == frage]['Thema'].values[0]
     überprüfung = app.state.chatbot.antwort_überprüfen(frage, antwort.key)
     überprüfung_lower = überprüfung.lower()
 
@@ -214,16 +218,16 @@ def überprüfeAntwort(antwort: Answer):
     logger.info(f"Thema: {thema}")
 
     if  "richtig" in überprüfung_lower:
-        logger.info(f"Fragen Anzahl: {statistik['Fragen Anzahl'].dtype}, Fragen richtig: {statistik['Fragen richtig'].dtype}")
-        statistik.loc[statistik['Thema'] == thema, 'Fragen Anzahl'] += 1
-        statistik.loc[statistik['Thema'] == thema, 'Fragen richtig'] += 1 
-        statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis = 1)
+        logger.info(f"Fragen Anzahl: {app.state.statistik['Fragen Anzahl'].dtype}, Fragen richtig: {app.state.statistik['Fragen richtig'].dtype}")
+        app.state.statistik.loc[app.state.statistik['Thema'] == thema, 'Fragen Anzahl'] += 1
+        app.state.statistik.loc[app.state.statistik['Thema'] == thema, 'Fragen richtig'] += 1 
+        app.state.statistik['richtig Prozent'] = app.state.statistik.apply(statistik_aktualisieren, axis = 1)
         
         return "korrekte Antwort"
     
     elif "falsch" in überprüfung_lower:
-        statistik[statistik['Thema'] == thema]['Fragen Anzahl'] += 1 
-        statistik['richtig Prozent'] = statistik.apply(statistik_aktualisieren, axis = 1)
+        app.state.statistik[app.state.statistik['Thema'] == thema]['Fragen Anzahl'] += 1 
+        app.state.statistik['richtig Prozent'] = app.state.statistik.apply(statistik_aktualisieren, axis = 1)
         
         return überprüfung
     
@@ -249,8 +253,10 @@ def nextQuestion():
 def nextQuestion():
     try:
         logger.info('Frage wird ausgewählt.')
-        thema = statistik.loc[statistik['richtig Prozent'].idxmin(),'Thema']
-        questions = question[question['Thema'] == thema]['Frage']
+        logger.info(app.state.question.head())
+        logger.info(app.state.statistik.head())
+        thema = app.state.statistik.loc[app.state.statistik['richtig Prozent'].idxmin(skipna=True),'Thema']
+        questions = app.state.question[app.state.question['Thema'] == thema]['Frage']
         
         if questions.empty:
             
@@ -258,7 +264,7 @@ def nextQuestion():
             return {"error": "Keine Fragen zum ausgewählten Thema vorhanden."}
         
         frage = questions.iloc[randint(0, len(questions) - 1)]
-        lastquestion = frage
+        app.state.lastquestion = frage
         
         return {"question": frage}
     
@@ -270,7 +276,7 @@ def nextQuestion():
 # Statistik laden
 @app.get("/Statistik")
 def getStatistik():
-    return statistik.to_json()
+    return app.state.statistik.to_json()
 
 #Zusammenfassung erstellen
 @app.get("/Zusammenfassung")
