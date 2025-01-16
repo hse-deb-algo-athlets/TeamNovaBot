@@ -117,12 +117,25 @@ async def chat(message: str, history = []):
         yield message
 
 # Statistik
-def statistik() -> pd.DataFrame:
+def statistik():
     try:
         url = base_url + "Statistik"
         stat = requests.get(url)
         stat.raise_for_status()
-        return pd.DataFrame(stat.json())
+        
+        status = pd.read_json(stat.json())
+        logger.info(status)
+
+        return gr.BarPlot(
+                                        status,
+                                        x = "Thema",
+                                        y = "richtig Prozent",
+                                        x_title = "Thema",
+                                        y_title = "Prozent",
+                                        color = "richtig Prozent",
+                                        title = "Statistik",
+                                        color_map = {"richtig Prozent": "#75ff33"}
+                                    )
     
     except Exception as e:
         gr.Warning(f"Fehler beim Statistik erstellen aufgetreten.{e}")
@@ -169,7 +182,7 @@ def check_antworten(answer, history = []):
         antwort = requests.post(url, json = {"key": answer})
         antwort.raise_for_status()
         
-        return antwort
+        return antwort.json()
     
     except Exception as e:
         gr.Warning(f"Fehler bei Antwort check. {e}")
@@ -185,22 +198,16 @@ def questions_gen(questions):
         data = frage.json()
         if isinstance(data, str):
             data = json.loads(data)
-<<<<<<< HEAD
 
-        frage_test = data["question"]
-        testtupel = [["Stelle mir bitte eine Frage.", frage_test]]
-        return testtupel   
-
-=======
         frage_test = data["question"]
         return [["Stelle mir eine Frage",frage_test]]
     
->>>>>>> origin/MyPart
     except Exception as e:
         gr.Warning(f"Fehler bei der Fragenstellung: {e}")
         logger.error(f"Fehler bei der Fragenstellung: {e}")
         return {}
 
+'''
 # Versuch Frage stellen
 def show_questions(questions: dict):
     
@@ -234,6 +241,7 @@ def hqg(questions):
 
     outtupel = [["Stell mir eine Frage.", f"Das Thema: {first_question_thema} \nDie Frage lautet: {first_question}"]]
     return outtupel
+'''
 
 # Funktion Löschen der Collection
 def delete_collection(selected_collection:str):
@@ -383,16 +391,25 @@ with gr.Blocks() as demo:
         # Statistikmodus
             with gr.Tab("Statistik"): 
                 with gr.Row():
+                    
+                    #Platzhalter
+                    stats = pd.DataFrame(
+                                        {
+                                        "Thema": ["Korrekt", "Falsch"],
+                                        "richtig Prozent": [80, 47],
+                                        }
+                                        )
                     st = gr.BarPlot(
-                                        value = stats.value,
+                                        stats,
                                         x = "Thema",
                                         y = "richtig Prozent",
                                         x_title = "Thema",
                                         y_title = "Prozent",
-                                        color = "Bewertung",
+                                        color = "richtig Prozent",
                                         title = "Statistik",
-                                        color_map = {"Korrekt": "#75ff33", "Falsch": "#FF5733"}
+                                        color_map = {"richtig Prozent": "#75ff33"}
                                     )
+                
                 gr.Button("Statistik laden").click(statistik, outputs = st)
 
         # Verwaltungsmodus

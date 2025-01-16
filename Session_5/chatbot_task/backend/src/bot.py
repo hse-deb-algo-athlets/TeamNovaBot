@@ -437,8 +437,6 @@ class CustomChatBot:
         )
         return question_chain.invoke({"context":chunk})
     
-        
-
     def zusammenfassung_erstellen(self):
 
         logger.info("erstelle Zusammenfassung ...") 

@@ -49,8 +49,8 @@ def update_dropdown(selected_collection = None):
 #Platzhalter
 stats = pd.DataFrame(
   {
-    "Bewertung": ["Korrekt", "Falsch"],
-    "Anzahl": [80, 47]
+    "Thema": ["Korrekt", "Falsch"],
+    "richtig Prozent": [80, 47]
   }
 )
 
@@ -138,9 +138,19 @@ with gr.Blocks() as demo:
         # Statistikmodus
             with gr.Tab("Statistik"): 
                 with gr.Row():
-                    st = gr.BarPlot(stats, x = "Bewertung", y = "Anzahl", color = "Bewertung",
-                    color_map = {"Korrekt": "#75ff33", "Falsch": "#FF5733"})
+                    st = gr.BarPlot(
+                                        stats,
+                                        x = "Thema",
+                                        y = "richtig Prozent",
+                                        x_title = "Thema",
+                                        y_title = "Prozent",
+                                        color = "richtig Prozent",
+                                        title = "Statistik",
+                                        color_map = {"richtig Prozent": "#75ff33"}
+                                    )
+                
                 button_stat = gr.Button("Statistik laden")
+                
                 button_stat.click()
 
         # Verwaltungsmodus
