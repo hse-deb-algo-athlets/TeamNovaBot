@@ -148,6 +148,7 @@ def fragen_generieren():
         url = base_url + "Fragen"
         antwort = requests.get(url)
         antwort.raise_for_status()
+
         logger.info(antwort.json())
         count = len(antwort.json())
 
@@ -175,7 +176,7 @@ def check_antworten(answer, history = []):
         logger.error(f"Fehler bei Antwort check. {e}")
 
 # Funktion Generierte Fragen Speichern für Abfrage
-def questions_gen(questions):                               ## MORGEN
+def questions_gen(questions):                              
     try:
         url = base_url + "nächsteFrage"
         frage = requests.get(url)
@@ -184,9 +185,11 @@ def questions_gen(questions):                               ## MORGEN
         data = frage.json()
         if isinstance(data, str):
             data = json.loads(data)
-        
-        return data
-    
+
+        frage_test = data["question"]
+        testtupel = [["Stelle mir bitte eine Frage.", frage_test]]
+        return testtupel   
+
     except Exception as e:
         gr.Warning(f"Fehler bei der Fragenstellung: {e}")
         logger.error(f"Fehler bei der Fragenstellung: {e}")
