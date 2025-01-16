@@ -184,8 +184,8 @@ def questions_gen(questions):                               ## MORGEN
         data = frage.json()
         if isinstance(data, str):
             data = json.loads(data)
-        
-        return data
+        frage_test = data["question"]
+        return [["Stelle mir eine Frage",frage_test]]
     
     except Exception as e:
         gr.Warning(f"Fehler bei der Fragenstellung: {e}")
